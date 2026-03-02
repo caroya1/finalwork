@@ -22,6 +22,10 @@ public class User {
 
     private String passwordHash;
 
+    private String avatarUrl;
+
+    private String city;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
@@ -75,6 +79,22 @@ public class User {
 
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+    }
+
+    public String getAvatarUrl() {
+        return avatarUrl;
+    }
+
+    public void setAvatarUrl(String avatarUrl) {
+        this.avatarUrl = avatarUrl;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 
     public LocalDateTime getCreatedAt() {

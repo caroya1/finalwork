@@ -1,17 +1,17 @@
 <template>
   <section class="hero">
     <div class="hero-card">
-      <h2>智能发现与搜索</h2>
-      <p>支持场景推荐、位置筛选与新品探索，推荐结果缓存加速。</p>
+      <h2>账号与推荐</h2>
+      <p>登录后可刷新推荐列表，搜索已集成在顶部搜索栏。</p>
       <div class="form-grid">
         <input v-model="form.userId" placeholder="用户ID（登录后自动填充）" />
         <input v-model="form.city" placeholder="城市（建议英文）" />
         <input v-model="form.scene" placeholder="场景，例如：带老人聚餐" />
-        <button class="cta" @click="loadRecommendations">获取推荐</button>
+        <button class="cta" @click="loadRecommendations">刷新推荐</button>
       </div>
     </div>
     <div class="hero-card">
-      <h2>为你推荐</h2>
+      <h2>推荐结果</h2>
       <div class="list">
         <div v-for="shop in recommendations" :key="shop.id" class="list-item">
           <strong>{{ shop.name }}</strong>
@@ -23,6 +23,16 @@
         <div v-if="recommendations.length === 0" class="list-item">
           暂无推荐，填写信息后获取。
         </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="category-grid">
+    <div class="category-card" v-for="item in categories" :key="item.label">
+      <div class="category-icon">{{ item.icon }}</div>
+      <div>
+        <div>{{ item.label }}</div>
+        <div class="feed-meta">{{ item.desc }}</div>
       </div>
     </div>
   </section>
@@ -49,8 +59,8 @@
       </div>
     </div>
     <div class="panel">
-      <h2>智能搜索</h2>
-      <p>文字、语音、拍照多模式入口（大模型部分暂未接入）。</p>
+      <h2>推荐引擎</h2>
+      <p>基于用户行为与场景数据的个性化推荐。</p>
     </div>
     <div class="panel">
       <h2>商户详情</h2>
@@ -61,11 +71,25 @@
       <p>关注、话题讨论、榜单投票沉淀用户行为。</p>
     </div>
   </section>
+
+  <section class="feed-grid">
+    <div class="feed-card" v-for="item in feeds" :key="item.id">
+      <div class="feed-image"></div>
+      <div class="feed-body">
+        <h3 class="feed-title">{{ item.title }}</h3>
+        <div class="feed-meta">
+          <span>{{ item.city || "-" }}</span>
+          <span>likes {{ item.likes || 0 }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted, onBeforeUnmount } from "vue";
 import { fetchRecommendations } from "../api/recommendation";
+import { listPosts } from "../api/post";
 import { login } from "../api/auth";
 import { register } from "../api/user";
 
@@ -76,6 +100,14 @@ const form = ref({
 });
 
 const recommendations = ref([]);
+const categories = ref([
+  { icon: "FOOD", label: "美食", desc: "今日爆款" },
+  { icon: "TRIP", label: "景点/周边游", desc: "轻松出发" },
+  { icon: "HOTEL", label: "酒店/民宿", desc: "安心住" },
+  { icon: "FUN", label: "休闲/玩乐", desc: "好去处" },
+  { icon: "MOVIE", label: "猫眼电影", desc: "热映中" }
+]);
+const feeds = ref([]);
 const auth = ref({
   username: "",
   password: ""
@@ -135,4 +167,24 @@ const loadRecommendations = async () => {
     recommendations.value = response.data || [];
   }
 };
+
+const loadPosts = async (keyword) => {
+  const response = await listPosts({ city: form.value.city, keyword });
+  if (response.success) {
+    feeds.value = response.data || [];
+  }
+};
+
+const handleSearch = (event) => {
+  loadPosts(event.detail || "");
+};
+
+onMounted(() => {
+  loadPosts("");
+  window.addEventListener("dp-search", handleSearch);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("dp-search", handleSearch);
+});
 </script>

@@ -1,26 +1,28 @@
-package com.dianping.merchant.entity;
+package com.dianping.post.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
-@TableName("dp_merchant")
-public class Merchant {
+@TableName("dp_post")
+public class Post {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    @NotBlank(message = "name is required")
-    private String name;
+    private Long userId;
 
-    private String category;
+    private String title;
+
+    private String content;
+
+    private String coverUrl;
 
     private String city;
 
-    private String status;
+    private String tags;
 
-    private Double rating;
+    private Integer likes;
 
     private LocalDateTime createdAt;
 
@@ -36,7 +38,6 @@ public class Merchant {
         this.updatedAt = LocalDateTime.now();
     }
 
-
     public Long getId() {
         return id;
     }
@@ -45,20 +46,36 @@ public class Merchant {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
+    public Long getUserId() {
+        return userId;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
-    public String getCategory() {
-        return category;
+    public String getTitle() {
+        return title;
     }
 
-    public void setCategory(String category) {
-        this.category = category;
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getContent() {
+        return content;
+    }
+
+    public void setContent(String content) {
+        this.content = content;
+    }
+
+    public String getCoverUrl() {
+        return coverUrl;
+    }
+
+    public void setCoverUrl(String coverUrl) {
+        this.coverUrl = coverUrl;
     }
 
     public String getCity() {
@@ -69,20 +86,20 @@ public class Merchant {
         this.city = city;
     }
 
-    public String getStatus() {
-        return status;
+    public String getTags() {
+        return tags;
     }
 
-    public void setStatus(String status) {
-        this.status = status;
+    public void setTags(String tags) {
+        this.tags = tags;
     }
 
-    public Double getRating() {
-        return rating;
+    public Integer getLikes() {
+        return likes;
     }
 
-    public void setRating(Double rating) {
-        this.rating = rating;
+    public void setLikes(Integer likes) {
+        this.likes = likes;
     }
 
     public LocalDateTime getCreatedAt() {

@@ -20,10 +20,14 @@ public class Shop {
 
     private String city;
 
+    private String address;
+
     private Double longitude;
     private Double latitude;
 
     private Long merchantId;
+
+    private Double rating;
 
     private LocalDateTime createdAt;
 
@@ -80,6 +84,14 @@ public class Shop {
         this.city = city;
     }
 
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
     public Double getLongitude() {
         return longitude;
     }
@@ -102,6 +114,14 @@ public class Shop {
 
     public void setMerchantId(Long merchantId) {
         this.merchantId = merchantId;
+    }
+
+    public Double getRating() {
+        return rating;
+    }
+
+    public void setRating(Double rating) {
+        this.rating = rating;
     }
 
     public LocalDateTime getCreatedAt() {

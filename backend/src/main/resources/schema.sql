@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS dp_user (
   email VARCHAR(128),
   phone VARCHAR(20),
   password_hash VARCHAR(128) NOT NULL,
+  avatar_url VARCHAR(255),
+  city VARCHAR(64),
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL
 );
@@ -17,6 +19,7 @@ CREATE TABLE IF NOT EXISTS dp_merchant (
   category VARCHAR(64),
   city VARCHAR(32),
   status VARCHAR(32),
+  rating DECIMAL(3,2) DEFAULT 0.0,
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL
 );
@@ -25,11 +28,13 @@ CREATE TABLE IF NOT EXISTS dp_shop (
   id BIGINT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(128) NOT NULL,
   category VARCHAR(64),
-  tags VARCHAR(64),
+  tags VARCHAR(128),
   city VARCHAR(32),
+  address VARCHAR(255),
   longitude DOUBLE,
   latitude DOUBLE,
   merchant_id BIGINT,
+  rating DECIMAL(3,2) DEFAULT 0.0,
   created_at DATETIME NOT NULL,
   updated_at DATETIME NOT NULL
 );
@@ -51,4 +56,17 @@ CREATE TABLE IF NOT EXISTS dp_recommendation_log (
   scene VARCHAR(255) NOT NULL,
   action VARCHAR(64) NOT NULL,
   created_at DATETIME NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dp_post (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT,
+  title VARCHAR(255) NOT NULL,
+  content TEXT,
+  cover_url VARCHAR(255),
+  city VARCHAR(64),
+  tags VARCHAR(128),
+  likes INT DEFAULT 0,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL
 );
