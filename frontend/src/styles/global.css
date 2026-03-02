@@ -183,6 +183,10 @@ a {
   font-family: inherit;
 }
 
+.form-grid button {
+  justify-self: start;
+}
+
 .form-grid span {
   font-size: 0.85rem;
   color: rgba(0, 0, 0, 0.65);
