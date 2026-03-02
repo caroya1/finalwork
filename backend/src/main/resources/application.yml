@@ -7,13 +7,6 @@ spring:
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
   redis:
     host: 192.168.145.128
     port: 6379
@@ -33,3 +26,10 @@ app:
   jwt:
     secret: DianpingJwtSecretKey-ChangeMe-2026
     expire-minutes: 120
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: auto

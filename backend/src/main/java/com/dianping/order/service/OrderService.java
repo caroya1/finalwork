@@ -2,8 +2,9 @@ package com.dianping.order.service;
 
 import com.dianping.common.exception.BusinessException;
 import com.dianping.order.dto.CreateOrderRequest;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dianping.order.entity.Order;
-import com.dianping.order.repository.OrderRepository;
+import com.dianping.order.mapper.OrderMapper;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
@@ -15,11 +16,11 @@ public class OrderService {
     private static final String ORDER_CACHE_PREFIX = "dp:order:";
     private static final String SHOP_LOCK_PREFIX = "dp:lock:shop:";
 
-    private final OrderRepository orderRepository;
+    private final OrderMapper orderMapper;
     private final RedisTemplate<String, Object> redisTemplate;
 
-    public OrderService(OrderRepository orderRepository, RedisTemplate<String, Object> redisTemplate) {
-        this.orderRepository = orderRepository;
+    public OrderService(OrderMapper orderMapper, RedisTemplate<String, Object> redisTemplate) {
+        this.orderMapper = orderMapper;
         this.redisTemplate = redisTemplate;
     }
 
@@ -36,7 +37,9 @@ public class OrderService {
             order.setShopId(request.getShopId());
             order.setAmount(request.getAmount());
             order.setStatus(1);
-            Order saved = orderRepository.save(order);
+            order.touchForCreate();
+            orderMapper.insert(order);
+            Order saved = order;
             redisTemplate.opsForValue().set(ORDER_CACHE_PREFIX + saved.getId(), saved, 300, TimeUnit.SECONDS);
             return saved;
         } finally {
@@ -49,10 +52,10 @@ public class OrderService {
         if (cached instanceof Order) {
             return (Order) cached;
         }
-        return orderRepository.findById(id).orElse(null);
+        return orderMapper.selectById(id);
     }
 
     public List<Order> listUserOrders(Long userId) {
-        return orderRepository.findByUserId(userId);
+        return orderMapper.selectList(new LambdaQueryWrapper<Order>().eq(Order::getUserId, userId));
     }
 }

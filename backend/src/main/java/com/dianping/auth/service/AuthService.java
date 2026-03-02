@@ -4,24 +4,26 @@ import com.dianping.auth.dto.LoginRequest;
 import com.dianping.auth.dto.LoginResponse;
 import com.dianping.common.exception.BusinessException;
 import com.dianping.user.entity.User;
-import com.dianping.user.repository.UserRepository;
+import com.dianping.user.service.UserService;
 import org.springframework.stereotype.Service;
 
 @Service
 public class AuthService {
-    private final UserRepository userRepository;
+    private final UserService userService;
     private final PasswordService passwordService;
     private final JwtService jwtService;
 
-    public AuthService(UserRepository userRepository, PasswordService passwordService, JwtService jwtService) {
-        this.userRepository = userRepository;
+    public AuthService(UserService userService, PasswordService passwordService, JwtService jwtService) {
+        this.userService = userService;
         this.passwordService = passwordService;
         this.jwtService = jwtService;
     }
 
     public LoginResponse login(LoginRequest request) {
-        User user = userRepository.findByUsername(request.getUsername())
-                .orElseThrow(() -> new BusinessException("invalid username or password"));
+        User user = userService.findByUsername(request.getUsername());
+        if (user == null) {
+            throw new BusinessException("invalid username or password");
+        }
 
         if (!passwordService.matches(request.getPassword(), user.getPasswordHash())) {
             throw new BusinessException("invalid username or password");

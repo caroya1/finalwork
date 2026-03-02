@@ -2,20 +2,21 @@ package com.dianping.user.service;
 
 import com.dianping.common.exception.BusinessException;
 import com.dianping.auth.service.PasswordService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dianping.user.entity.User;
 import com.dianping.user.dto.UserCreateRequest;
-import com.dianping.user.repository.UserRepository;
+import com.dianping.user.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 public class UserService {
-    private final UserRepository userRepository;
+    private final UserMapper userMapper;
     private final PasswordService passwordService;
 
-    public UserService(UserRepository userRepository, PasswordService passwordService) {
-        this.userRepository = userRepository;
+    public UserService(UserMapper userMapper, PasswordService passwordService) {
+        this.userMapper = userMapper;
         this.passwordService = passwordService;
     }
 
@@ -31,10 +32,16 @@ public class UserService {
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
         user.setPasswordHash(passwordService.encode(request.getPassword()));
-        return userRepository.save(user);
+        user.touchForCreate();
+        userMapper.insert(user);
+        return user;
     }
 
     public List<User> list() {
-        return userRepository.findAll();
+        return userMapper.selectList(null);
+    }
+
+    public User findByUsername(String username) {
+        return userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
     }
 }

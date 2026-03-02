@@ -1,46 +1,39 @@
 package com.dianping.merchant.entity;
 
-import javax.persistence.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "dp_merchant")
+@TableName("dp_merchant")
 public class Merchant {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     @NotBlank(message = "name is required")
-    @Column(nullable = false, length = 128)
     private String name;
 
-    @Column(length = 64)
     private String category;
 
-    @Column(length = 32)
     private String city;
 
-    @Column(length = 32)
     private String status;
 
-    @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    @PrePersist
-    public void prePersist() {
+    public void touchForCreate() {
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
     }
 
-    @PreUpdate
-    public void preUpdate() {
+    public void touchForUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
 
     public Long getId() {
         return id;

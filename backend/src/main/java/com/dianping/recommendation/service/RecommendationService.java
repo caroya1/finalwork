@@ -2,9 +2,10 @@ package com.dianping.recommendation.service;
 
 import com.dianping.recommendation.dto.RecommendationRequest;
 import com.dianping.recommendation.entity.RecommendationLog;
-import com.dianping.recommendation.repository.RecommendationLogRepository;
+import com.dianping.recommendation.mapper.RecommendationLogMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dianping.shop.entity.Shop;
-import com.dianping.shop.repository.ShopRepository;
+import com.dianping.shop.mapper.ShopMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -19,17 +20,17 @@ import java.util.concurrent.TimeUnit;
 public class RecommendationService {
     private static final String CACHE_PREFIX = "dp:rec:";
 
-    private final ShopRepository shopRepository;
-    private final RecommendationLogRepository logRepository;
+    private final ShopMapper shopMapper;
+    private final RecommendationLogMapper logMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final long cacheTtlSeconds;
 
-    public RecommendationService(ShopRepository shopRepository,
-                                 RecommendationLogRepository logRepository,
+    public RecommendationService(ShopMapper shopMapper,
+                                 RecommendationLogMapper logMapper,
                                  RedisTemplate<String, Object> redisTemplate,
                                  @Value("${app.recommendation.cache-ttl-seconds:300}") long cacheTtlSeconds) {
-        this.shopRepository = shopRepository;
-        this.logRepository = logRepository;
+        this.shopMapper = shopMapper;
+        this.logMapper = logMapper;
         this.redisTemplate = redisTemplate;
         this.cacheTtlSeconds = cacheTtlSeconds;
     }
@@ -41,7 +42,7 @@ public class RecommendationService {
             return castList(cached);
         }
 
-        List<Shop> shops = shopRepository.findByCity(request.getCity());
+        List<Shop> shops = shopMapper.selectList(new LambdaQueryWrapper<Shop>().eq(Shop::getCity, request.getCity()));
         Collections.shuffle(shops);
         List<Shop> result = shops.size() > 10 ? shops.subList(0, 10) : shops;
 
@@ -55,7 +56,8 @@ public class RecommendationService {
             log.setShopId(shop.getId());
             log.setScene(request.getScene() == null ? "default" : request.getScene());
             log.setAction("recommend");
-            logRepository.save(log);
+            log.touchForCreate();
+            logMapper.insert(log);
         }
         return result;
     }

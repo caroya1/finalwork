@@ -1,44 +1,37 @@
 package com.dianping.order.entity;
 
-import javax.persistence.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "dp_order")
+@TableName("dp_order")
 public class Order {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
     private Long shopId;
 
-    @Column(nullable = false)
     private Integer amount;
 
-    @Column(nullable = false)
     private Integer status;
 
-    @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    @PrePersist
-    public void prePersist() {
+    public void touchForCreate() {
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
     }
 
-    @PreUpdate
-    public void preUpdate() {
+    public void touchForUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
 
     public Long getId() {
         return id;

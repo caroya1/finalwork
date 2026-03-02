@@ -1,34 +1,29 @@
 package com.dianping.recommendation.entity;
 
-import javax.persistence.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "dp_recommendation_log")
+@TableName("dp_recommendation_log")
 public class RecommendationLog {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
-    @Column(nullable = false)
     private Long userId;
 
-    @Column(nullable = false)
     private Long shopId;
 
-    @Column(nullable = false)
     private String scene;
 
-    @Column(nullable = false)
     private String action;
 
-    @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @PrePersist
-    public void prePersist() {
+    public void touchForCreate() {
         this.createdAt = LocalDateTime.now();
     }
+
 
     public Long getId() {
         return id;

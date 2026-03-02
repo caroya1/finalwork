@@ -1,48 +1,41 @@
 package com.dianping.user.entity;
 
-import javax.persistence.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableName;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
-@Entity
-@Table(name = "dp_user")
+@TableName("dp_user")
 public class User {
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @TableId(type = IdType.AUTO)
     private Long id;
 
     @NotBlank(message = "username is required")
-    @Column(nullable = false, length = 64, unique = true)
     private String username;
 
     @Email(message = "email is invalid")
-    @Column(length = 128)
     private String email;
 
-    @Column(length = 20)
     private String phone;
 
-    @Column(nullable = false, length = 128)
     private String passwordHash;
 
-    @Column(nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    @PrePersist
-    public void prePersist() {
+    public void touchForCreate() {
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
     }
 
-    @PreUpdate
-    public void preUpdate() {
+    public void touchForUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
+
 
     public Long getId() {
         return id;

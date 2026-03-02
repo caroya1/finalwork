@@ -1,24 +1,26 @@
 package com.dianping.merchant.service;
 
 import com.dianping.merchant.entity.Merchant;
-import com.dianping.merchant.repository.MerchantRepository;
+import com.dianping.merchant.mapper.MerchantMapper;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
 public class MerchantService {
-    private final MerchantRepository merchantRepository;
+    private final MerchantMapper merchantMapper;
 
-    public MerchantService(MerchantRepository merchantRepository) {
-        this.merchantRepository = merchantRepository;
+    public MerchantService(MerchantMapper merchantMapper) {
+        this.merchantMapper = merchantMapper;
     }
 
     public Merchant create(Merchant merchant) {
-        return merchantRepository.save(merchant);
+        merchant.touchForCreate();
+        merchantMapper.insert(merchant);
+        return merchant;
     }
 
     public List<Merchant> list() {
-        return merchantRepository.findAll();
+        return merchantMapper.selectList(null);
     }
 }

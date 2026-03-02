@@ -3,7 +3,6 @@ package com.dianping.user.controller;
 import com.dianping.user.entity.User;
 import com.dianping.user.service.UserService;
 import com.dianping.user.dto.UserCreateRequest;
-import com.dianping.auth.service.PasswordService;
 import com.dianping.auth.security.SecurityConfig;
 import org.springframework.context.annotation.Import;
 import org.junit.jupiter.api.Test;
@@ -30,10 +29,6 @@ class UserControllerTest {
 
     @MockBean
     private UserService userService;
-
-    @MockBean
-    private PasswordService passwordService;
-
 
     @Test
     void createUserReturnsOk() throws Exception {
