@@ -2,6 +2,9 @@ package com.dianping.merchant.controller;
 
 import com.dianping.merchant.entity.Merchant;
 import com.dianping.merchant.service.MerchantService;
+import com.dianping.auth.security.SecurityConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -19,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(MerchantController.class)
+@Import(SecurityConfig.class)
 class MerchantControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -26,7 +30,9 @@ class MerchantControllerTest {
     @MockBean
     private MerchantService merchantService;
 
+
     @Test
+    @WithMockUser
     void createMerchantReturnsOk() throws Exception {
         Merchant merchant = new Merchant();
         merchant.setId(1L);
@@ -42,6 +48,7 @@ class MerchantControllerTest {
     }
 
     @Test
+    @WithMockUser
     void listMerchantsReturnsOk() throws Exception {
         when(merchantService.list()).thenReturn(Collections.emptyList());
 
@@ -49,4 +56,5 @@ class MerchantControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
+
 }

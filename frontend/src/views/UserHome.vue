@@ -29,6 +29,26 @@
 
   <section class="panel-grid">
     <div class="panel">
+      <h2>身份鉴权</h2>
+      <div class="form-grid">
+        <input v-model="auth.username" placeholder="用户名" />
+        <input v-model="auth.password" type="password" placeholder="密码" />
+        <button class="cta" @click="doLogin">登录</button>
+        <span>{{ authMessage }}</span>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>快速注册</h2>
+      <div class="form-grid">
+        <input v-model="registerForm.username" placeholder="用户名" />
+        <input v-model="registerForm.email" placeholder="邮箱" />
+        <input v-model="registerForm.phone" placeholder="手机号" />
+        <input v-model="registerForm.password" type="password" placeholder="密码" />
+        <button class="cta" @click="doRegister">注册</button>
+        <span>{{ registerMessage }}</span>
+      </div>
+    </div>
+    <div class="panel">
       <h2>智能搜索</h2>
       <p>文字、语音、拍照多模式入口（大模型部分暂未接入）。</p>
     </div>
@@ -46,6 +66,8 @@
 <script setup>
 import { ref } from "vue";
 import { fetchRecommendations } from "../api/recommendation";
+import { login } from "../api/auth";
+import { register } from "../api/user";
 
 const form = ref({
   userId: "1",
@@ -54,6 +76,47 @@ const form = ref({
 });
 
 const recommendations = ref([]);
+const auth = ref({
+  username: "",
+  password: ""
+});
+const registerForm = ref({
+  username: "",
+  email: "",
+  phone: "",
+  password: ""
+});
+const authMessage = ref("");
+const registerMessage = ref("");
+
+const doLogin = async () => {
+  authMessage.value = "";
+  try {
+    const response = await login(auth.value);
+    if (response.success) {
+      localStorage.setItem("dp_token", response.data.token);
+      authMessage.value = "登录成功";
+    } else {
+      authMessage.value = response.message || "登录失败";
+    }
+  } catch (error) {
+    authMessage.value = "登录失败";
+  }
+};
+
+const doRegister = async () => {
+  registerMessage.value = "";
+  try {
+    const response = await register(registerForm.value);
+    if (response.success) {
+      registerMessage.value = "注册成功";
+    } else {
+      registerMessage.value = response.message || "注册失败";
+    }
+  } catch (error) {
+    registerMessage.value = "注册失败";
+  }
+};
 
 const loadRecommendations = async () => {
   const payload = {

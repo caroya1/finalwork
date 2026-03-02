@@ -2,6 +2,9 @@ package com.dianping.shop.controller;
 
 import com.dianping.shop.entity.Shop;
 import com.dianping.shop.service.ShopService;
+import com.dianping.auth.security.SecurityConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -19,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(ShopController.class)
+@Import(SecurityConfig.class)
 class ShopControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -26,7 +30,9 @@ class ShopControllerTest {
     @MockBean
     private ShopService shopService;
 
+
     @Test
+    @WithMockUser
     void createShopReturnsOk() throws Exception {
         Shop shop = new Shop();
         shop.setId(1L);
@@ -43,6 +49,7 @@ class ShopControllerTest {
     }
 
     @Test
+    @WithMockUser
     void listShopsReturnsOk() throws Exception {
         when(shopService.listByCity("上海")).thenReturn(Collections.emptyList());
 

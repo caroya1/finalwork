@@ -183,6 +183,11 @@ a {
   font-family: inherit;
 }
 
+.form-grid span {
+  font-size: 0.85rem;
+  color: rgba(0, 0, 0, 0.65);
+}
+
 .list {
   display: grid;
   gap: 12px;

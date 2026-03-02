@@ -30,3 +30,6 @@ spring:
 app:
   recommendation:
     cache-ttl-seconds: 300
+  jwt:
+    secret: DianpingJwtSecretKey-ChangeMe-2026
+    expire-minutes: 120

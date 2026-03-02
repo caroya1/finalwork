@@ -2,6 +2,10 @@ package com.dianping.user.controller;
 
 import com.dianping.user.entity.User;
 import com.dianping.user.service.UserService;
+import com.dianping.user.dto.UserCreateRequest;
+import com.dianping.auth.service.PasswordService;
+import com.dianping.auth.security.SecurityConfig;
+import org.springframework.context.annotation.Import;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -19,12 +23,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserController.class)
+@Import(SecurityConfig.class)
 class UserControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
     @MockBean
     private UserService userService;
+
+    @MockBean
+    private PasswordService passwordService;
+
 
     @Test
     void createUserReturnsOk() throws Exception {
@@ -33,11 +42,11 @@ class UserControllerTest {
         user.setUsername("alice");
         user.setEmail("alice@example.com");
 
-        when(userService.create(any(User.class))).thenReturn(user);
+        when(userService.create(any(UserCreateRequest.class))).thenReturn(user);
 
         mockMvc.perform(post("/api/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"username\":\"alice\",\"email\":\"alice@example.com\"}"))
+                        .content("{\"username\":\"alice\",\"email\":\"alice@example.com\",\"password\":\"pass123\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }

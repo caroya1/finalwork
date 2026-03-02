@@ -1,6 +1,7 @@
 package com.dianping.user.controller;
 
 import com.dianping.common.api.ApiResponse;
+import com.dianping.user.dto.UserCreateRequest;
 import com.dianping.user.entity.User;
 import com.dianping.user.service.UserService;
 import org.springframework.validation.annotation.Validated;
@@ -20,8 +21,8 @@ public class UserController {
     }
 
     @PostMapping
-    public ApiResponse<User> create(@Valid @RequestBody User user) {
-        return ApiResponse.ok(userService.create(user));
+    public ApiResponse<User> create(@Valid @RequestBody UserCreateRequest request) {
+        return ApiResponse.ok(userService.create(request));
     }
 
     @GetMapping

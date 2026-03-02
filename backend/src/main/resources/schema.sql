@@ -1,0 +1,54 @@
+CREATE DATABASE IF NOT EXISTS dianping DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE dianping;
+
+CREATE TABLE IF NOT EXISTS dp_user (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(64) NOT NULL UNIQUE,
+  email VARCHAR(128),
+  phone VARCHAR(20),
+  password_hash VARCHAR(128) NOT NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dp_merchant (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(128) NOT NULL,
+  category VARCHAR(64),
+  city VARCHAR(32),
+  status VARCHAR(32),
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dp_shop (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(128) NOT NULL,
+  category VARCHAR(64),
+  tags VARCHAR(64),
+  city VARCHAR(32),
+  longitude DOUBLE,
+  latitude DOUBLE,
+  merchant_id BIGINT,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dp_order (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  shop_id BIGINT NOT NULL,
+  amount INT NOT NULL,
+  status INT NOT NULL,
+  created_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS dp_recommendation_log (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  shop_id BIGINT NOT NULL,
+  scene VARCHAR(255) NOT NULL,
+  action VARCHAR(64) NOT NULL,
+  created_at DATETIME NOT NULL
+);

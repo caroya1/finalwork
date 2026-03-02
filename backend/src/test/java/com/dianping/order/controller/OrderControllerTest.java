@@ -3,6 +3,9 @@ package com.dianping.order.controller;
 import com.dianping.order.dto.CreateOrderRequest;
 import com.dianping.order.entity.Order;
 import com.dianping.order.service.OrderService;
+import com.dianping.auth.security.SecurityConfig;
+import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -20,6 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(OrderController.class)
+@Import(SecurityConfig.class)
 class OrderControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -27,7 +31,9 @@ class OrderControllerTest {
     @MockBean
     private OrderService orderService;
 
+
     @Test
+    @WithMockUser
     void createOrderReturnsOk() throws Exception {
         Order order = new Order();
         order.setId(1L);
@@ -46,6 +52,7 @@ class OrderControllerTest {
     }
 
     @Test
+    @WithMockUser
     void getOrderReturnsOk() throws Exception {
         Order order = new Order();
         order.setId(1L);
@@ -62,6 +69,7 @@ class OrderControllerTest {
     }
 
     @Test
+    @WithMockUser
     void listOrdersReturnsOk() throws Exception {
         when(orderService.listUserOrders(1L)).thenReturn(Collections.emptyList());
 

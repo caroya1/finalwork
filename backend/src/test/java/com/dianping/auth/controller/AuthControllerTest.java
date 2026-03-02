@@ -1,18 +1,17 @@
-package com.dianping.recommendation.controller;
+package com.dianping.auth.controller;
 
-import com.dianping.recommendation.dto.RecommendationRequest;
-import com.dianping.recommendation.service.RecommendationService;
+import com.dianping.auth.service.AuthService;
+import com.dianping.auth.dto.LoginResponse;
+import com.dianping.auth.dto.LoginRequest;
+import com.dianping.auth.service.JwtService;
 import com.dianping.auth.security.SecurityConfig;
-import org.springframework.context.annotation.Import;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
@@ -20,26 +19,29 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(RecommendationController.class)
+@WebMvcTest(AuthController.class)
 @Import(SecurityConfig.class)
-class RecommendationControllerTest {
+class AuthControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
     @MockBean
-    private RecommendationService recommendationService;
+    private AuthService authService;
+
+    @MockBean
+    private JwtService jwtService;
 
 
     @Test
-    @WithMockUser
-    void recommendReturnsOk() throws Exception {
-        when(recommendationService.recommend(any(RecommendationRequest.class)))
-                .thenReturn(Collections.emptyList());
+    void loginReturnsOk() throws Exception {
+        when(authService.login(any(LoginRequest.class)))
+                .thenReturn(new LoginResponse("token", 1L));
 
-        mockMvc.perform(post("/api/recommendations")
+        mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"userId\":1,\"city\":\"上海\"}"))
+                        .content("{\"username\":\"alice\",\"password\":\"pass\"}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.token").value("token"));
     }
 }
