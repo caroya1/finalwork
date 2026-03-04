@@ -20,7 +20,24 @@ mvn spring-boot:run
 ```
 
 ## 前端启动
-进入 `frontend` 目录运行：
+### 用户端
+进入 `frontend-user` 目录运行：
+
+```bash
+npm install
+npm run dev
+```
+
+### 商户端
+进入 `frontend-merchant` 目录运行：
+
+```bash
+npm install
+npm run dev
+```
+
+### 管理端
+进入 `frontend-admin` 目录运行：
 
 ```bash
 npm install

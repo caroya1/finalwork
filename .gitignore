@@ -1,6 +1,10 @@
 backend/target/
-frontend/node_modules/
-frontend/dist/
+frontend-user/node_modules/
+frontend-user/dist/
+frontend-merchant/node_modules/
+frontend-merchant/dist/
+frontend-admin/node_modules/
+frontend-admin/dist/
 .idea/
 .vscode/
 .DS_Store

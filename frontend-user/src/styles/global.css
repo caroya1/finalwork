@@ -284,56 +284,6 @@ a {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
-/* ========== 角色选择 ========== */
-.role-section {
-  margin-top: 4px;
-}
-
-.role-label {
-  display: block;
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-
-.role-group {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.role-option {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  padding: 12px 8px;
-  border-radius: 14px;
-  border: 2px solid var(--line);
-  cursor: pointer;
-  transition: all 0.2s;
-  font-size: 0.8rem;
-  text-align: center;
-}
-
-.role-option input[type="radio"] {
-  display: none;
-}
-
-.role-option.selected {
-  border-color: var(--accent);
-  background: rgba(255, 106, 45, 0.06);
-  color: var(--accent);
-}
-
-.role-option:hover {
-  border-color: var(--accent-2);
-}
-
-.role-icon {
-  font-size: 1.4rem;
-}
-
 /* ========== 表单通用 ========== */
 .form-select {
   padding: 10px 12px;

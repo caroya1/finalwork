@@ -87,6 +87,7 @@ const shopForm = ref({
   tags: ""
 });
 const shopMessage = ref("");
+
 const couponForm = ref({
   shopId: "",
   type: "normal",
