@@ -2,6 +2,7 @@ package com.dianping.user.controller;
 
 import com.dianping.common.api.ApiResponse;
 import com.dianping.user.dto.UserCreateRequest;
+import com.dianping.user.dto.UpdateCityRequest;
 import com.dianping.user.entity.User;
 import com.dianping.user.service.UserService;
 import org.springframework.validation.annotation.Validated;
@@ -28,5 +29,11 @@ public class UserController {
     @GetMapping
     public ApiResponse<List<User>> list() {
         return ApiResponse.ok(userService.list());
+    }
+
+    @PutMapping("/{id}/city")
+    public ApiResponse<User> updateCity(@PathVariable("id") Long id,
+                                        @Valid @RequestBody UpdateCityRequest request) {
+        return ApiResponse.ok(userService.updateCity(id, request.getCity()));
     }
 }

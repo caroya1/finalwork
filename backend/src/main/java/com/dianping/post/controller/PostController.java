@@ -1,12 +1,21 @@
 package com.dianping.post.controller;
 
 import com.dianping.common.api.ApiResponse;
+import com.dianping.post.dto.PostDetailResponse;
 import com.dianping.post.entity.Post;
+import com.dianping.post.dto.PostCommentRequest;
+import com.dianping.post.service.PostCommentService;
 import com.dianping.post.service.PostService;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import javax.validation.Valid;
 
 import java.util.List;
 
@@ -14,14 +23,35 @@ import java.util.List;
 @RequestMapping("/api/posts")
 public class PostController {
     private final PostService postService;
+    private final PostCommentService postCommentService;
 
-    public PostController(PostService postService) {
+    public PostController(PostService postService, PostCommentService postCommentService) {
         this.postService = postService;
+        this.postCommentService = postCommentService;
     }
 
     @GetMapping
     public ApiResponse<List<Post>> list(@RequestParam(value = "city", required = false) String city,
-                                        @RequestParam(value = "keyword", required = false) String keyword) {
-        return ApiResponse.ok(postService.list(city, keyword));
+                                        @RequestParam(value = "keyword", required = false) String keyword,
+                                        @RequestParam(value = "shopId", required = false) Long shopId) {
+        return ApiResponse.ok(postService.list(city, keyword, shopId));
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<PostDetailResponse> detail(@PathVariable("id") Long id, Authentication authentication) {
+        Long userId = authentication != null ? Long.parseLong(authentication.getPrincipal().toString()) : null;
+        return ApiResponse.ok(postService.getDetail(id, userId));
+    }
+
+    @PostMapping("/{id}/comments")
+    public ApiResponse<Void> comment(@PathVariable("id") Long id,
+                                     @Valid @RequestBody PostCommentRequest request,
+                                     Authentication authentication) {
+        if (authentication == null || authentication.getPrincipal() == null) {
+            return ApiResponse.fail("login required");
+        }
+        Long userId = Long.parseLong(authentication.getPrincipal().toString());
+        postCommentService.addComment(id, userId, request);
+        return ApiResponse.ok(null);
     }
 }

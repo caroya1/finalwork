@@ -15,6 +15,10 @@ public class UserCreateRequest {
     @NotBlank(message = "password is required")
     private String password;
 
+    private String city;
+
+    private String role;
+
     public String getUsername() {
         return username;
     }
@@ -45,5 +49,21 @@ public class UserCreateRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 }

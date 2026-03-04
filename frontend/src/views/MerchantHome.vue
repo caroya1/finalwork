@@ -30,7 +30,7 @@
     <div class="panel">
       <h2>门店列表</h2>
       <div class="form-grid">
-        <input v-model="shopCity" placeholder="城市（建议英文）" />
+        <input v-model="shopCity" placeholder="城市" />
         <button class="cta" @click="loadShops">查询门店</button>
       </div>
       <div class="list">
@@ -68,7 +68,7 @@ const shopForm = ref({
 });
 const shopMessage = ref("");
 
-const shopCity = ref("Shanghai");
+const shopCity = ref("上海");
 const shopList = ref([]);
 
 const submitMerchant = async () => {
@@ -84,7 +84,7 @@ const submitShop = async () => {
 };
 
 const loadShops = async () => {
-  const response = await listShops(shopCity.value);
+  const response = await listShops({ city: shopCity.value });
   if (response.success) {
     shopList.value = response.data || [];
   }

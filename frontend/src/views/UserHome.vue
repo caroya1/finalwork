@@ -1,178 +1,147 @@
 <template>
   <section class="hero">
     <div class="hero-card">
-      <h2>账号与推荐</h2>
-      <p>登录后可刷新推荐列表，搜索已集成在顶部搜索栏。</p>
+      <h2>智能推荐</h2>
+      <p>基于您的偏好与场景，为您推荐最合适的商户。</p>
       <div class="form-grid">
-        <input v-model="form.userId" placeholder="用户ID（登录后自动填充）" />
-        <input v-model="form.city" placeholder="城市（建议英文）" />
-        <input v-model="form.scene" placeholder="场景，例如：带老人聚餐" />
-        <button class="cta" @click="loadRecommendations">刷新推荐</button>
+        <input v-model="form.scene" placeholder="输入场景，例如：带老人聚餐、朋友约火锅" />
+        <button class="cta" @click="loadRecommendations">获取推荐</button>
       </div>
+      <div v-if="recMessage" class="rec-message">{{ recMessage }}</div>
     </div>
     <div class="hero-card">
       <h2>推荐结果</h2>
       <div class="list">
-        <div v-for="shop in recommendations" :key="shop.id" class="list-item">
+        <RouterLink v-for="shop in recommendations" :key="shop.id" class="list-item list-item-link" :to="`/shops/${shop.id}`">
           <strong>{{ shop.name }}</strong>
           <div>
             <span class="tag">{{ shop.category || "综合" }}</span>
             <span class="tag">{{ shop.city }}</span>
+            <span v-if="shop.rating" class="tag">{{ shop.rating }}分</span>
           </div>
-        </div>
+        </RouterLink>
         <div v-if="recommendations.length === 0" class="list-item">
-          暂无推荐，填写信息后获取。
+          暂无推荐，请输入场景后获取。
         </div>
       </div>
     </div>
   </section>
 
   <section class="category-grid">
-    <div class="category-card" v-for="item in categories" :key="item.label">
+    <button
+      class="category-card"
+      v-for="item in categories"
+      :key="item.label"
+      @click="goCategory(item)"
+    >
       <div class="category-icon">{{ item.icon }}</div>
       <div>
         <div>{{ item.label }}</div>
         <div class="feed-meta">{{ item.desc }}</div>
       </div>
-    </div>
+    </button>
   </section>
 
-  <section class="panel-grid">
-    <div class="panel">
-      <h2>身份鉴权</h2>
-      <div class="form-grid">
-        <input v-model="auth.username" placeholder="用户名" />
-        <input v-model="auth.password" type="password" placeholder="密码" />
-        <button class="cta" @click="doLogin">登录</button>
-        <span>{{ authMessage }}</span>
-      </div>
-    </div>
-    <div class="panel">
-      <h2>快速注册</h2>
-      <div class="form-grid">
-        <input v-model="registerForm.username" placeholder="用户名" />
-        <input v-model="registerForm.email" placeholder="邮箱" />
-        <input v-model="registerForm.phone" placeholder="手机号" />
-        <input v-model="registerForm.password" type="password" placeholder="密码" />
-        <button class="cta" @click="doRegister">注册</button>
-        <span>{{ registerMessage }}</span>
-      </div>
-    </div>
-    <div class="panel">
-      <h2>推荐引擎</h2>
-      <p>基于用户行为与场景数据的个性化推荐。</p>
-    </div>
-    <div class="panel">
-      <h2>商户详情</h2>
-      <p>展示评分、口碑摘要与相关推荐。</p>
-    </div>
-    <div class="panel">
-      <h2>社区互动</h2>
-      <p>关注、话题讨论、榜单投票沉淀用户行为。</p>
-    </div>
+  <section class="section-header" v-if="feeds.length > 0">
+    <h2>探索发现</h2>
+    <p>发现身边的精彩生活</p>
   </section>
 
   <section class="feed-grid">
-    <div class="feed-card" v-for="item in feeds" :key="item.id">
+    <RouterLink
+      class="feed-card"
+      v-for="item in feeds"
+      :key="item.id"
+      :to="`/posts/${item.id}`"
+    >
       <div class="feed-image"></div>
       <div class="feed-body">
         <h3 class="feed-title">{{ item.title }}</h3>
+        <p class="feed-content">{{ item.content }}</p>
         <div class="feed-meta">
           <span>{{ item.city || "-" }}</span>
-          <span>likes {{ item.likes || 0 }}</span>
+          <span>{{ item.likes || 0 }} 赞</span>
         </div>
       </div>
-    </div>
+    </RouterLink>
   </section>
+  <div v-if="feeds.length === 0" class="empty-state">
+    暂无帖子，稍后再试
+  </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
+import { RouterLink, useRouter } from "vue-router";
 import { fetchRecommendations } from "../api/recommendation";
 import { listPosts } from "../api/post";
-import { login } from "../api/auth";
-import { register } from "../api/user";
+
+const router = useRouter();
 
 const form = ref({
-  userId: "",
-  city: "Shanghai",
   scene: ""
 });
 
 const recommendations = ref([]);
+const recMessage = ref("");
+
 const categories = ref([
-  { icon: "FOOD", label: "美食", desc: "今日爆款" },
-  { icon: "TRIP", label: "景点/周边游", desc: "轻松出发" },
-  { icon: "HOTEL", label: "酒店/民宿", desc: "安心住" },
-  { icon: "FUN", label: "休闲/玩乐", desc: "好去处" },
-  { icon: "MOVIE", label: "猫眼电影", desc: "热映中" }
+  { icon: "🍜", label: "美食", desc: "今日爆款", query: "美食" },
+  { icon: "🏞", label: "景点/周边游", desc: "轻松出发", query: "休闲,景点,周边游" },
+  { icon: "🏨", label: "酒店/民宿", desc: "安心住", query: "酒店,民宿" },
+  { icon: "🎮", label: "休闲/玩乐", desc: "好去处", query: "休闲" },
+  { icon: "🎬", label: "猫眼电影", desc: "热映中", query: "电影" }
 ]);
+
 const feeds = ref([]);
-const auth = ref({
-  username: "",
-  password: ""
-});
-const registerForm = ref({
-  username: "",
-  email: "",
-  phone: "",
-  password: ""
-});
-const authMessage = ref("");
-const registerMessage = ref("");
-
-const doLogin = async () => {
-  authMessage.value = "";
-  try {
-    const response = await login(auth.value);
-    if (response.success) {
-      localStorage.setItem("dp_token", response.data.token);
-      form.value.userId = String(response.data.userId || "");
-      authMessage.value = "登录成功";
-    } else {
-      authMessage.value = response.message || "登录失败";
-    }
-  } catch (error) {
-    authMessage.value = "登录失败";
-  }
-};
-
-const doRegister = async () => {
-  registerMessage.value = "";
-  try {
-    const response = await register(registerForm.value);
-    if (response.success) {
-      form.value.userId = String(response.data.id || "");
-      registerMessage.value = "注册成功";
-    } else {
-      registerMessage.value = response.message || "注册失败";
-    }
-  } catch (error) {
-    registerMessage.value = "注册失败";
-  }
-};
 
 const loadRecommendations = async () => {
-  if (!form.value.userId) {
-    authMessage.value = "请先登录";
+  recMessage.value = "";
+  const userId = localStorage.getItem("dp_user_id");
+  if (!userId) {
+    recMessage.value = "请先登录后获取个性化推荐";
     return;
   }
+  const city = localStorage.getItem("dp_city") || "上海";
   const payload = {
-    userId: Number(form.value.userId),
-    city: form.value.city,
+    userId: Number(userId),
+    city: city,
     scene: form.value.scene || null
   };
-  const response = await fetchRecommendations(payload);
-  if (response.success) {
-    recommendations.value = response.data || [];
+  try {
+    const response = await fetchRecommendations(payload);
+    if (response.success) {
+      recommendations.value = response.data || [];
+      if (recommendations.value.length === 0) {
+        recMessage.value = "暂无匹配的推荐结果";
+      }
+    } else {
+      recMessage.value = response.message || "获取推荐失败";
+    }
+  } catch {
+    recMessage.value = "获取推荐失败，请稍后重试";
   }
 };
 
 const loadPosts = async (keyword) => {
-  const response = await listPosts({ city: form.value.city, keyword });
+  const city = localStorage.getItem("dp_city") || "上海";
+  const response = await listPosts({ city, keyword });
   if (response.success) {
-    feeds.value = response.data || [];
+    feeds.value = (response.data || []).map((item) => ({
+      ...item,
+      content: item.content ? item.content.slice(0, 60) + (item.content.length > 60 ? "..." : "") : ""
+    }));
+  } else {
+    feeds.value = [];
   }
+};
+
+const goCategory = (item) => {
+  const city = localStorage.getItem("dp_city") || "上海";
+  router.push({
+    path: "/category",
+    query: { category: item.query, label: item.label, city }
+  });
 };
 
 const handleSearch = (event) => {
@@ -188,3 +157,16 @@ onBeforeUnmount(() => {
   window.removeEventListener("dp-search", handleSearch);
 });
 </script>
+
+<style scoped>
+.list-item-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s;
+  cursor: pointer;
+}
+.list-item-link:hover {
+  border-color: var(--accent);
+}
+</style>

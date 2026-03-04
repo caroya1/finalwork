@@ -24,6 +24,8 @@ public class User {
 
     private String avatarUrl;
 
+    private String userRole;
+
     private String city;
 
     private LocalDateTime createdAt;
@@ -87,6 +89,14 @@ public class User {
 
     public void setAvatarUrl(String avatarUrl) {
         this.avatarUrl = avatarUrl;
+    }
+
+    public String getUserRole() {
+        return userRole;
+    }
+
+    public void setUserRole(String userRole) {
+        this.userRole = userRole;
     }
 
     public String getCity() {

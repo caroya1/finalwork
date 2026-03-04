@@ -31,6 +31,8 @@ public class UserService {
         user.setUsername(request.getUsername());
         user.setEmail(request.getEmail());
         user.setPhone(request.getPhone());
+        user.setCity(request.getCity());
+        user.setUserRole(request.getRole() == null || request.getRole().trim().isEmpty() ? "user" : request.getRole());
         user.setPasswordHash(passwordService.encode(request.getPassword()));
         user.touchForCreate();
         userMapper.insert(user);
@@ -43,5 +45,20 @@ public class UserService {
 
     public User findByUsername(String username) {
         return userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
+    }
+
+    public User findById(Long userId) {
+        return userMapper.selectById(userId);
+    }
+
+    public User updateCity(Long userId, String city) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("user not found");
+        }
+        user.setCity(city);
+        user.touchForUpdate();
+        userMapper.updateById(user);
+        return user;
     }
 }

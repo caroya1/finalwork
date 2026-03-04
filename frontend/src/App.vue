@@ -9,37 +9,327 @@
         </div>
       </div>
       <div class="header-search">
-        <div class="location">上海</div>
+        <div class="location" @click="openCityPicker" title="点击切换城市">
+          <span>{{ currentCity }}</span>
+          <span class="location-arrow">▼</span>
+        </div>
         <input
           class="search-input"
           v-model="keyword"
           placeholder="输入商户名、地点或菜品"
+          @keyup.enter="emitSearch"
         />
         <button class="search-btn" @click="emitSearch">搜索</button>
       </div>
       <nav class="nav">
         <RouterLink to="/">发现</RouterLink>
-        <RouterLink to="/merchant">商户服务</RouterLink>
-        <RouterLink to="/admin">运营后台</RouterLink>
+        <RouterLink v-if="showMerchantNav" to="/merchant">商户服务</RouterLink>
+        <RouterLink v-if="showAdminNav" to="/admin">运营后台</RouterLink>
       </nav>
-      <div class="header-actions">
-        <button class="ghost-btn">登录/注册</button>
-        <button class="cta">去APP看更多内容</button>
+      <div class="header-actions" v-if="!isLoggedIn">
+        <button class="ghost-btn" @click="openAuth('login')">登录</button>
+        <button class="cta" @click="openAuth('register')">注册</button>
+      </div>
+      <div class="header-actions" v-else>
+        <span class="user-info">{{ currentUsername }}</span>
+        <button class="ghost-btn" @click="doLogout">退出</button>
       </div>
     </header>
     <main class="app-main">
       <RouterView />
     </main>
+
+    <!-- 登录/注册弹窗 -->
+    <div v-if="authOpen" class="auth-overlay" @click.self="closeAuth">
+      <div class="auth-card">
+        <div class="auth-header">
+          <h2>{{ authMode === 'login' ? '登录' : '注册' }}</h2>
+          <button class="auth-close" @click="closeAuth">&times;</button>
+        </div>
+        <div class="auth-tabs">
+          <button
+            :class="['auth-tab', authMode === 'login' ? 'active' : '']"
+            @click="switchMode('login')"
+          >登录</button>
+          <button
+            :class="['auth-tab', authMode === 'register' ? 'active' : '']"
+            @click="switchMode('register')"
+          >注册</button>
+        </div>
+        <div class="form-grid">
+          <input v-model="authForm.username" placeholder="用户名" />
+          <input v-model="authForm.password" type="password" placeholder="密码" />
+          <template v-if="authMode === 'register'">
+            <input v-model="authForm.email" placeholder="邮箱" />
+            <input v-model="authForm.phone" placeholder="手机号" />
+            <select v-model="authForm.city" class="form-select">
+              <option value="" disabled>选择默认城市</option>
+              <option v-for="c in cityOptions" :key="c" :value="c">{{ c }}</option>
+            </select>
+          </template>
+          <div class="role-section">
+            <label class="role-label">选择身份</label>
+            <div class="role-group">
+              <label
+                v-for="r in roleOptions"
+                :key="r.value"
+                :class="['role-option', authForm.role === r.value ? 'selected' : '']"
+              >
+                <input type="radio" :value="r.value" v-model="authForm.role" />
+                <span class="role-icon">{{ r.icon }}</span>
+                <span>{{ r.label }}</span>
+              </label>
+            </div>
+          </div>
+          <button class="cta auth-submit" @click="submitAuth">
+            {{ authMode === 'login' ? '登录' : '注册并登录' }}
+          </button>
+          <div v-if="authMessage" class="auth-message" :class="authMessageType">
+            {{ authMessage }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 城市选择弹窗 -->
+    <div v-if="cityPickerOpen" class="auth-overlay" @click.self="closeCityPicker">
+      <div class="auth-card city-picker-card">
+        <div class="auth-header">
+          <h2>选择城市</h2>
+          <button class="auth-close" @click="closeCityPicker">&times;</button>
+        </div>
+        <div class="city-grid">
+          <button
+            v-for="c in cityOptions"
+            :key="c"
+            :class="['city-item', currentCity === c ? 'active' : '']"
+            @click="selectCity(c)"
+          >{{ c }}</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { RouterLink, RouterView } from "vue-router";
+import { login } from "./api/auth";
+import { register, updateCity } from "./api/user";
 
+const router = useRouter();
 const keyword = ref("");
 
+/* ---------- 城市选项 ---------- */
+const cityOptions = [
+  "上海", "北京", "广州", "深圳", "杭州",
+  "南京", "成都", "重庆", "武汉", "西安",
+  "长沙", "天津", "苏州", "厦门", "青岛"
+];
+
+/* ---------- 角色选项 ---------- */
+const roleOptions = [
+  { value: "user", label: "用户", icon: "👤" },
+  { value: "merchant", label: "商家", icon: "🏪" },
+  { value: "admin", label: "管理员", icon: "🔧" }
+];
+
+/* ---------- 登录状态 ---------- */
+const isLoggedIn = ref(false);
+const currentUsername = ref("");
+const currentCity = ref("上海");
+const currentRole = ref("");
+
+const showMerchantNav = computed(() => isLoggedIn.value && currentRole.value === "merchant");
+const showAdminNav = computed(() => isLoggedIn.value && currentRole.value === "admin");
+
+const checkLoginState = () => {
+  const token = localStorage.getItem("dp_token");
+  const refreshToken = localStorage.getItem("dp_refresh_token");
+  const username = localStorage.getItem("dp_username");
+  const city = localStorage.getItem("dp_city");
+  const role = localStorage.getItem("dp_role");
+  isLoggedIn.value = !!token && !!refreshToken;
+  currentUsername.value = username || "";
+  currentCity.value = city || "上海";
+  currentRole.value = role || "";
+};
+
+onMounted(() => {
+  checkLoginState();
+});
+
+/* ---------- 搜索 ---------- */
 const emitSearch = () => {
+  window.dispatchEvent(new CustomEvent("dp-search", { detail: keyword.value }));
+};
+
+/* ---------- 登录/注册弹窗 ---------- */
+const authOpen = ref(false);
+const authMode = ref("login");
+const authForm = ref({
+  username: "",
+  password: "",
+  email: "",
+  phone: "",
+  city: "上海",
+  role: "user"
+});
+const authMessage = ref("");
+const authMessageType = ref("");
+
+const openAuth = (mode) => {
+  authMode.value = mode;
+  authMessage.value = "";
+  authMessageType.value = "";
+  authForm.value = {
+    username: "",
+    password: "",
+    email: "",
+    phone: "",
+    city: "上海",
+    role: "user"
+  };
+  authOpen.value = true;
+};
+
+const switchMode = (mode) => {
+  authMode.value = mode;
+  authMessage.value = "";
+  authMessageType.value = "";
+};
+
+const closeAuth = () => {
+  authOpen.value = false;
+};
+
+const submitAuth = async () => {
+  authMessage.value = "";
+  authMessageType.value = "";
+
+  if (!authForm.value.username || !authForm.value.password) {
+    authMessage.value = "请填写用户名和密码";
+    authMessageType.value = "error";
+    return;
+  }
+
+  try {
+    /* 注册流程 */
+    if (authMode.value === "register") {
+      const regResp = await register({
+        username: authForm.value.username,
+        password: authForm.value.password,
+        email: authForm.value.email,
+        phone: authForm.value.phone,
+        city: authForm.value.city || "上海",
+        role: authForm.value.role
+      });
+      if (!regResp.success) {
+        authMessage.value = regResp.message || "注册失败";
+        authMessageType.value = "error";
+        return;
+      }
+    }
+
+    /* 登录流程（注册成功后自动登录） */
+    const loginResp = await login({
+      username: authForm.value.username,
+      password: authForm.value.password
+    });
+
+    if (!loginResp.success) {
+      authMessage.value = loginResp.message || "登录失败";
+      authMessageType.value = "error";
+      return;
+    }
+
+    /* 保存登录信息 */
+    localStorage.setItem("dp_token", loginResp.data.token);
+    if (loginResp.data.refreshToken) {
+      localStorage.setItem("dp_refresh_token", loginResp.data.refreshToken);
+    }
+    localStorage.setItem("dp_user_id", String(loginResp.data.userId));
+    localStorage.setItem("dp_username", authForm.value.username);
+    localStorage.setItem("dp_role", loginResp.data.role || authForm.value.role || "user");
+    currentRole.value = loginResp.data.role || authForm.value.role || "user";
+
+    /* 城市逻辑：登录时后端返回用户在数据库中的城市 */
+    const userCity = loginResp.data.city || "上海";
+    localStorage.setItem("dp_city", userCity);
+    currentCity.value = userCity;
+
+    /* 如果是注册且选了城市，同步到后端 */
+    if (authMode.value === "register" && authForm.value.city) {
+      await updateCity(loginResp.data.userId, authForm.value.city);
+      localStorage.setItem("dp_city", authForm.value.city);
+      currentCity.value = authForm.value.city;
+    }
+
+    /* 更新状态 */
+    isLoggedIn.value = true;
+    currentUsername.value = authForm.value.username;
+    authOpen.value = false;
+
+    /* 按角色导航 */
+    const role = loginResp.data.role || authForm.value.role || "user";
+    if (role === "merchant") {
+      router.push("/merchant");
+    } else if (role === "admin") {
+      router.push("/admin");
+    } else {
+      router.push("/");
+    }
+  } catch (err) {
+    authMessage.value = "操作失败，请检查网络后重试";
+    authMessageType.value = "error";
+  }
+};
+
+/* ---------- 退出登录 ---------- */
+const doLogout = () => {
+  localStorage.removeItem("dp_token");
+  localStorage.removeItem("dp_user_id");
+  localStorage.removeItem("dp_refresh_token");
+  localStorage.removeItem("dp_username");
+  localStorage.removeItem("dp_role");
+  localStorage.removeItem("dp_city");
+  isLoggedIn.value = false;
+  currentUsername.value = "";
+  currentRole.value = "";
+  currentCity.value = "上海";
+  router.push("/");
+};
+
+/* ---------- 城市选择 ---------- */
+const cityPickerOpen = ref(false);
+
+const openCityPicker = () => {
+  cityPickerOpen.value = true;
+};
+
+const closeCityPicker = () => {
+  cityPickerOpen.value = false;
+};
+
+const selectCity = async (city) => {
+  currentCity.value = city;
+  localStorage.setItem("dp_city", city);
+  cityPickerOpen.value = false;
+
+  /* 已登录用户同步城市到后端 */
+  if (isLoggedIn.value) {
+    const userId = localStorage.getItem("dp_user_id");
+    if (userId) {
+      try {
+        await updateCity(Number(userId), city);
+      } catch {
+        // 静默失败，本地已更新
+      }
+    }
+  }
+
+  /* 触发重新搜索 */
   window.dispatchEvent(new CustomEvent("dp-search", { detail: keyword.value }));
 };
 </script>

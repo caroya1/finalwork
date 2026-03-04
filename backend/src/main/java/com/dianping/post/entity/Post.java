@@ -12,6 +12,8 @@ public class Post {
 
     private Long userId;
 
+    private Long shopId;
+
     private String title;
 
     private String content;
@@ -52,6 +54,14 @@ public class Post {
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public Long getShopId() {
+        return shopId;
+    }
+
+    public void setShopId(Long shopId) {
+        this.shopId = shopId;
     }
 
     public String getTitle() {
