@@ -22,6 +22,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private static final String ACCESS_TOKEN_PREFIX = "dp:token:access:";
     private static final String REFRESH_TOKEN_PREFIX = "dp:token:refresh:";
+    private static final String USER_ACCESS_PREFIX = "dp:token:user:access:";
+    private static final String USER_REFRESH_PREFIX = "dp:token:user:refresh:";
     private static final String ACCESS_HEADER = "Authorization";
     private static final String REFRESH_HEADER = "X-Refresh-Token";
 
@@ -88,9 +90,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             String newRefresh = jwtService.generateRefreshToken(session.getId(), session.getUsername());
             redisTemplate.opsForValue().set(ACCESS_TOKEN_PREFIX + newAccess, cached, accessTtlSeconds, java.util.concurrent.TimeUnit.SECONDS);
             redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + newRefresh, cached, refreshTtlSeconds, java.util.concurrent.TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(USER_ACCESS_PREFIX + session.getId(), newAccess, refreshTtlSeconds, java.util.concurrent.TimeUnit.SECONDS);
+            redisTemplate.opsForValue().set(USER_REFRESH_PREFIX + session.getId(), newRefresh, refreshTtlSeconds, java.util.concurrent.TimeUnit.SECONDS);
             if (accessToken != null && !accessToken.trim().isEmpty()) {
                 redisTemplate.delete(ACCESS_TOKEN_PREFIX + accessToken);
             }
+            redisTemplate.delete(REFRESH_TOKEN_PREFIX + refreshHeader);
             response.setHeader(ACCESS_HEADER, "Bearer " + newAccess);
             response.setHeader(REFRESH_HEADER, newRefresh);
             return session;

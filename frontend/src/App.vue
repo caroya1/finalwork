@@ -115,7 +115,7 @@
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { RouterLink, RouterView } from "vue-router";
-import { login } from "./api/auth";
+import { login, logout } from "./api/auth";
 import { register, updateCity } from "./api/user";
 
 const router = useRouter();
@@ -287,7 +287,16 @@ const submitAuth = async () => {
 };
 
 /* ---------- 退出登录 ---------- */
-const doLogout = () => {
+const doLogout = async () => {
+  const refreshToken = localStorage.getItem("dp_refresh_token");
+  const accessToken = localStorage.getItem("dp_token");
+  if (refreshToken || accessToken) {
+    try {
+      await logout(refreshToken || null, accessToken || null);
+    } catch {
+      // ignore logout errors
+    }
+  }
   localStorage.removeItem("dp_token");
   localStorage.removeItem("dp_user_id");
   localStorage.removeItem("dp_refresh_token");

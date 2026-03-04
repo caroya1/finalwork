@@ -38,7 +38,7 @@
         <span class="tag" v-for="tag in tagList" :key="tag"># {{ tag }}</span>
       </div>
 
-      <div v-if="shop" class="shop-link">
+      <RouterLink v-if="shop" class="shop-link" :to="`/shops/${shop.id}`">
         <div class="shop-thumb"></div>
         <div class="shop-info">
           <div class="shop-name">{{ shop.name }}</div>
@@ -49,7 +49,7 @@
           </div>
           <div class="shop-address">{{ shop.address || "地址完善中" }}</div>
         </div>
-      </div>
+      </RouterLink>
 
       <section class="post-comments">
         <h3>评论 ({{ comments.length }})</h3>
@@ -87,7 +87,7 @@
 
 <script setup>
 import { ref, onMounted, watch } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, RouterLink } from "vue-router";
 import { getPostDetail, likePost as likePostApi, unlikePost as unlikePostApi, addComment } from "../api/post";
 
 const route = useRoute();
