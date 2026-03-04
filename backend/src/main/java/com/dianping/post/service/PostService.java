@@ -45,6 +45,12 @@ public class PostService {
         return postMapper.selectList(wrapper);
     }
 
+    public List<Post> listByUser(Long userId) {
+        return postMapper.selectList(new LambdaQueryWrapper<Post>()
+                .eq(Post::getUserId, userId)
+                .orderByDesc(Post::getCreatedAt));
+    }
+
     public PostDetailResponse getDetail(Long postId, Long userId) {
         Post post = postMapper.selectById(postId);
         if (post == null) {

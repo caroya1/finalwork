@@ -73,6 +73,28 @@
         <div class="info-row"><span class="info-label">评分</span><span>{{ shop.rating ? shop.rating.toFixed(2) : '0.00' }} 分</span></div>
       </div>
 
+      <!-- 优惠券列表 -->
+      <div class="panel">
+        <h3>🎟 优惠券</h3>
+        <div v-if="coupons.length === 0" class="empty-state">暂无优惠券</div>
+        <div v-for="coupon in coupons" :key="coupon.id" class="coupon-card">
+          <div class="coupon-main">
+            <div class="coupon-title">{{ coupon.title }}</div>
+            <div class="coupon-desc">{{ coupon.description || '限店铺使用' }}</div>
+            <div class="coupon-meta">
+              <span class="tag">{{ coupon.type === 'seckill' ? '特价券' : '平价券' }}</span>
+              <span class="tag">优惠 ¥{{ coupon.discountAmount }}</span>
+              <span class="tag">售价 ¥{{ coupon.price || 0 }}</span>
+              <span v-if="coupon.type === 'seckill'" class="tag">剩余 {{ coupon.remainingStock || 0 }}</span>
+            </div>
+          </div>
+          <button class="cta small-cta" @click="buyCoupon(coupon)">
+            {{ coupon.type === 'seckill' ? '秒杀' : '购买' }}
+          </button>
+        </div>
+        <div v-if="couponMessage" class="rec-message">{{ couponMessage }}</div>
+      </div>
+
       <!-- 相关帖子 -->
       <div class="panel">
         <h3>📝 相关笔记（{{ posts.length }}）</h3>
@@ -102,18 +124,20 @@
 <script setup>
 import { ref, onMounted, computed } from "vue";
 import { useRoute, RouterLink } from "vue-router";
-import { getShopDetail, rateShop, addDish } from "../api/shop";
+import { getShopDetail, rateShop, addDish, listCoupons, purchaseCoupon } from "../api/shop";
 
 const route = useRoute();
 const shop = ref(null);
 const dishes = ref([]);
 const posts = ref([]);
+const coupons = ref([]);
 const myRating = ref("");
 const rateMsg = ref("");
 const showDishForm = ref(false);
 const dishForm = ref({ name: "", price: null, description: "" });
 const dishMsg = ref("");
 const ratingOptions = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1];
+const couponMessage = ref("");
 
 const tagList = computed(() => {
   if (!shop.value || !shop.value.tags) return [];
@@ -126,6 +150,10 @@ const load = async () => {
     shop.value = res.data.shop;
     dishes.value = res.data.dishes || [];
     posts.value = res.data.posts || [];
+  }
+  const couponRes = await listCoupons(route.params.id);
+  if (couponRes.success) {
+    coupons.value = couponRes.data || [];
   }
 };
 
@@ -172,6 +200,23 @@ const submitDish = async () => {
     await load();
   } else {
     dishMsg.value = res.message || "添加失败";
+  }
+};
+
+
+const buyCoupon = async (coupon) => {
+  couponMessage.value = "";
+  const userId = localStorage.getItem("dp_user_id");
+  if (!userId) {
+    couponMessage.value = "请先登录";
+    return;
+  }
+  const res = await purchaseCoupon(coupon.id, Number(userId));
+  if (res.success) {
+    couponMessage.value = "购买成功";
+    await load();
+  } else {
+    couponMessage.value = res.message || "购买失败";
   }
 };
 
@@ -232,6 +277,31 @@ onMounted(load);
   padding: 20px 22px;
   box-shadow: var(--shadow);
   margin-bottom: 20px;
+}
+.coupon-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  margin-bottom: 12px;
+  background: #fff;
+}
+.coupon-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.coupon-desc {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.coupon-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 .panel h3 {
   margin: 0 0 14px;

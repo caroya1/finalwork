@@ -17,3 +17,12 @@ export const listDishes = (shopId) =>
 
 export const addDish = (shopId, payload) =>
   client.post(`/api/shops/${shopId}/dishes`, payload).then((res) => res.data);
+
+export const listCoupons = (shopId) =>
+  client.get("/api/coupons", { params: { shopId } }).then((res) => res.data);
+
+export const purchaseCoupon = (couponId, userId) =>
+  client.post(`/api/coupons/${couponId}/purchase`, { userId }).then((res) => res.data);
+
+export const createCoupon = (payload) =>
+  client.post("/api/coupons", payload).then((res) => res.data);

@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @TableName("dp_user")
@@ -27,6 +28,8 @@ public class User {
     private String userRole;
 
     private String city;
+
+    private BigDecimal balance;
 
     private LocalDateTime createdAt;
 
@@ -105,6 +108,14 @@ public class User {
 
     public void setCity(String city) {
         this.city = city;
+    }
+
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
     }
 
     public LocalDateTime getCreatedAt() {

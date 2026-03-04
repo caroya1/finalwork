@@ -5,3 +5,6 @@ export const register = (payload) =>
 
 export const updateCity = (userId, city) =>
   client.put(`/api/users/${userId}/city`, { city }).then((res) => res.data);
+
+export const rechargeBalance = (userId, amount) =>
+  client.post(`/api/users/${userId}/recharge`, { amount }).then((res) => res.data);

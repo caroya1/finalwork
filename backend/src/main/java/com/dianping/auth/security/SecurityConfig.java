@@ -26,10 +26,11 @@ public class SecurityConfig {
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 .and()
                 .authorizeRequests()
-                .antMatchers("/api/auth/**", "/api/users", "/api/users/*/city", "/api/posts", "/api/posts/*").permitAll()
+                .antMatchers("/api/auth/**", "/api/users", "/api/users/*/city", "/api/users/*/recharge", "/api/users/*/profile", "/api/posts", "/api/posts/*").permitAll()
                 .antMatchers(HttpMethod.GET, "/api/shops", "/api/shops/*", "/api/shops/*/dishes").permitAll()
                 .antMatchers(HttpMethod.POST, "/api/posts/*/like", "/api/posts/*/comments", "/api/shops/*/rate", "/api/shops/*/dishes").permitAll()
                 .antMatchers(HttpMethod.DELETE, "/api/posts/*/like").permitAll()
+                .antMatchers(HttpMethod.GET, "/api/coupons").permitAll()
                 .anyRequest().authenticated();
 
         long accessTtlSeconds = accessExpireMinutes * 60;

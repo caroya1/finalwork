@@ -4,11 +4,16 @@
 -- 字符集: utf8mb4
 -- ============================================================
 
+CREATE DATABASE IF NOT EXISTS dianping DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
+USE dianping;
+
 -- 按外键依赖顺序先删除子表，再删除父表
 DROP TABLE IF EXISTS dp_post_comment;
 DROP TABLE IF EXISTS dp_post_like;
 DROP TABLE IF EXISTS dp_shop_rating;
 DROP TABLE IF EXISTS dp_shop_dish;
+DROP TABLE IF EXISTS dp_coupon_purchase;
+DROP TABLE IF EXISTS dp_coupon;
 DROP TABLE IF EXISTS dp_recommendation_log;
 DROP TABLE IF EXISTS dp_order;
 DROP TABLE IF EXISTS dp_post;
@@ -28,6 +33,7 @@ CREATE TABLE dp_user (
   avatar_url    VARCHAR(255) DEFAULT NULL    COMMENT '头像地址',
   user_role     VARCHAR(32)  NOT NULL DEFAULT 'user' COMMENT '角色: user / merchant / admin',
   city          VARCHAR(64)  DEFAULT '上海'  COMMENT '用户默认城市',
+  balance       DECIMAL(10,2) DEFAULT 0.00 COMMENT '账户余额',
   created_at    DATETIME     NOT NULL        COMMENT '创建时间',
   updated_at    DATETIME     NOT NULL        COMMENT '更新时间',
   INDEX idx_user_role (user_role),
@@ -73,7 +79,45 @@ CREATE TABLE dp_shop (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='店铺表';
 
 -- ============================================================
--- 4. 订单表
+-- 4. 优惠券表
+-- ============================================================
+CREATE TABLE dp_coupon (
+  id              BIGINT       AUTO_INCREMENT PRIMARY KEY,
+  shop_id         BIGINT       NOT NULL        COMMENT '店铺ID',
+  type            VARCHAR(32)  NOT NULL        COMMENT '类型: normal / seckill',
+  title           VARCHAR(128) NOT NULL        COMMENT '标题',
+  description     VARCHAR(255) DEFAULT NULL    COMMENT '描述',
+  discount_amount DECIMAL(10,2) NOT NULL       COMMENT '优惠金额',
+  price           DECIMAL(10,2) DEFAULT 0.00   COMMENT '售价',
+  total_stock     INT          DEFAULT NULL    COMMENT '总库存(seckill)',
+  remaining_stock INT          DEFAULT NULL    COMMENT '剩余库存(seckill)',
+  start_time      DATETIME     DEFAULT NULL    COMMENT '秒杀开始时间',
+  end_time        DATETIME     DEFAULT NULL    COMMENT '秒杀结束时间',
+  created_at      DATETIME     NOT NULL,
+  updated_at      DATETIME     NOT NULL,
+  INDEX idx_coupon_shop (shop_id),
+  INDEX idx_coupon_type (type),
+  CONSTRAINT fk_coupon_shop FOREIGN KEY (shop_id) REFERENCES dp_shop(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='优惠券表';
+
+-- ============================================================
+-- 5. 优惠券购买记录
+-- ============================================================
+CREATE TABLE dp_coupon_purchase (
+  id          BIGINT       AUTO_INCREMENT PRIMARY KEY,
+  coupon_id   BIGINT       NOT NULL        COMMENT '优惠券ID',
+  user_id     BIGINT       NOT NULL        COMMENT '用户ID',
+  amount      DECIMAL(10,2) NOT NULL       COMMENT '支付金额',
+  status      VARCHAR(32)  NOT NULL        COMMENT '状态: paid',
+  created_at  DATETIME     NOT NULL,
+  INDEX idx_coupon_purchase_coupon (coupon_id),
+  INDEX idx_coupon_purchase_user (user_id),
+  CONSTRAINT fk_coupon_purchase_coupon FOREIGN KEY (coupon_id) REFERENCES dp_coupon(id) ON DELETE CASCADE,
+  CONSTRAINT fk_coupon_purchase_user FOREIGN KEY (user_id) REFERENCES dp_user(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='优惠券购买记录';
+
+-- ============================================================
+-- 6. 订单表
 -- ============================================================
 CREATE TABLE dp_order (
   id            BIGINT       AUTO_INCREMENT PRIMARY KEY,
@@ -91,7 +135,7 @@ CREATE TABLE dp_order (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单表';
 
 -- ============================================================
--- 5. 推荐日志表（只写不更新）
+-- 7. 推荐日志表（只写不更新）
 -- ============================================================
 CREATE TABLE dp_recommendation_log (
   id            BIGINT       AUTO_INCREMENT PRIMARY KEY,
@@ -107,7 +151,7 @@ CREATE TABLE dp_recommendation_log (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='推荐日志表';
 
 -- ============================================================
--- 6. 帖子/笔记表
+-- 8. 帖子/笔记表
 -- ============================================================
 CREATE TABLE dp_post (
   id            BIGINT       AUTO_INCREMENT PRIMARY KEY,
@@ -129,7 +173,7 @@ CREATE TABLE dp_post (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='帖子/笔记表';
 
 -- ============================================================
--- 7. 帖子点赞表（一人一次）
+-- 9. 帖子点赞表（一人一次）
 -- ============================================================
 CREATE TABLE dp_post_like (
   id         BIGINT  AUTO_INCREMENT PRIMARY KEY,
@@ -144,7 +188,7 @@ CREATE TABLE dp_post_like (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='帖子点赞表';
 
 -- ============================================================
--- 9. 帖子评论表
+-- 10. 帖子评论表
 -- ============================================================
 CREATE TABLE dp_post_comment (
   id         BIGINT  AUTO_INCREMENT PRIMARY KEY,
@@ -159,7 +203,7 @@ CREATE TABLE dp_post_comment (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='帖子评论表';
 
 -- ============================================================
--- 8. 商铺评分表（一人一次，可更新）
+-- 11. 商铺评分表（一人一次，可更新）
 -- ============================================================
 CREATE TABLE dp_shop_rating (
   id         BIGINT  AUTO_INCREMENT PRIMARY KEY,
@@ -176,7 +220,7 @@ CREATE TABLE dp_shop_rating (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='商铺评分表';
 
 -- ============================================================
--- 10. 店铺菜品/菜谱表（食客可添加）
+-- 12. 店铺菜品/菜谱表（食客可添加）
 -- ============================================================
 CREATE TABLE dp_shop_dish (
   id            BIGINT       AUTO_INCREMENT PRIMARY KEY,

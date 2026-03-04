@@ -5,12 +5,14 @@ import AdminHome from "../views/AdminHome.vue";
 import PostDetail from "../views/PostDetail.vue";
 import CategoryShops from "../views/CategoryShops.vue";
 import ShopDetail from "../views/ShopDetail.vue";
+import UserProfile from "../views/UserProfile.vue";
 
 const routes = [
   { path: "/", component: UserHome },
   { path: "/posts/:id", component: PostDetail },
   { path: "/category", component: CategoryShops },
   { path: "/shops/:id", component: ShopDetail },
+  { path: "/profile", component: UserProfile },
   { path: "/merchant", component: MerchantHome, meta: { role: "merchant" } },
   { path: "/admin", component: AdminHome, meta: { role: "admin" } }
 ];

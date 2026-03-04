@@ -8,6 +8,7 @@ import com.dianping.user.dto.UserCreateRequest;
 import com.dianping.user.mapper.UserMapper;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Service
@@ -33,6 +34,7 @@ public class UserService {
         user.setPhone(request.getPhone());
         user.setCity(request.getCity());
         user.setUserRole(request.getRole() == null || request.getRole().trim().isEmpty() ? "user" : request.getRole());
+        user.setBalance(BigDecimal.ZERO);
         user.setPasswordHash(passwordService.encode(request.getPassword()));
         user.touchForCreate();
         userMapper.insert(user);
@@ -60,5 +62,37 @@ public class UserService {
         user.touchForUpdate();
         userMapper.updateById(user);
         return user;
+    }
+
+    public User recharge(Long userId, BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("amount must be positive");
+        }
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("user not found");
+        }
+        BigDecimal current = user.getBalance() == null ? BigDecimal.ZERO : user.getBalance();
+        user.setBalance(current.add(amount));
+        user.touchForUpdate();
+        userMapper.updateById(user);
+        return user;
+    }
+
+    public void deductBalance(Long userId, BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException("amount must be positive");
+        }
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("user not found");
+        }
+        BigDecimal current = user.getBalance() == null ? BigDecimal.ZERO : user.getBalance();
+        if (current.compareTo(amount) < 0) {
+            throw new BusinessException("insufficient balance");
+        }
+        user.setBalance(current.subtract(amount));
+        user.touchForUpdate();
+        userMapper.updateById(user);
     }
 }

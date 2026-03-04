@@ -31,7 +31,7 @@
         <button class="cta" @click="openAuth('register')">注册</button>
       </div>
       <div class="header-actions" v-else>
-        <span class="user-info">{{ currentUsername }}</span>
+        <RouterLink class="user-info user-link" to="/profile">{{ currentUsername }}</RouterLink>
         <button class="ghost-btn" @click="doLogout">退出</button>
       </div>
     </header>
@@ -113,6 +113,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
+import { onBeforeUnmount } from "vue";
 import { useRouter } from "vue-router";
 import { RouterLink, RouterView } from "vue-router";
 import { login, logout } from "./api/auth";
@@ -158,6 +159,11 @@ const checkLoginState = () => {
 
 onMounted(() => {
   checkLoginState();
+  window.addEventListener("dp-auth-required", openLoginModal);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("dp-auth-required", openLoginModal);
 });
 
 /* ---------- 搜索 ---------- */
@@ -202,6 +208,10 @@ const switchMode = (mode) => {
 
 const closeAuth = () => {
   authOpen.value = false;
+};
+
+const openLoginModal = () => {
+  openAuth("login");
 };
 
 const submitAuth = async () => {
@@ -252,6 +262,9 @@ const submitAuth = async () => {
     localStorage.setItem("dp_user_id", String(loginResp.data.userId));
     localStorage.setItem("dp_username", authForm.value.username);
     localStorage.setItem("dp_role", loginResp.data.role || authForm.value.role || "user");
+    if (loginResp.data.balance != null) {
+      localStorage.setItem("dp_balance", String(loginResp.data.balance));
+    }
     currentRole.value = loginResp.data.role || authForm.value.role || "user";
 
     /* 城市逻辑：登录时后端返回用户在数据库中的城市 */
@@ -303,6 +316,7 @@ const doLogout = async () => {
   localStorage.removeItem("dp_username");
   localStorage.removeItem("dp_role");
   localStorage.removeItem("dp_city");
+  localStorage.removeItem("dp_balance");
   isLoggedIn.value = false;
   currentUsername.value = "";
   currentRole.value = "";

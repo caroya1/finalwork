@@ -6,13 +6,15 @@ public class LoginResponse {
     private Long userId;
     private String city;
     private String role;
+    private java.math.BigDecimal balance;
 
-    public LoginResponse(String token, String refreshToken, Long userId, String city, String role) {
+    public LoginResponse(String token, String refreshToken, Long userId, String city, String role, java.math.BigDecimal balance) {
         this.token = token;
         this.refreshToken = refreshToken;
         this.userId = userId;
         this.city = city;
         this.role = role;
+        this.balance = balance;
     }
 
     public String getToken() {
@@ -33,5 +35,9 @@ public class LoginResponse {
 
     public String getRole() {
         return role;
+    }
+
+    public java.math.BigDecimal getBalance() {
+        return balance;
     }
 }
