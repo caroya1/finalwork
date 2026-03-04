@@ -95,6 +95,13 @@
         <div v-if="couponMessage" class="rec-message">{{ couponMessage }}</div>
       </div>
 
+      <div v-if="balanceModalOpen" class="auth-overlay" @click.self="balanceModalOpen = false">
+        <div class="auth-card balance-modal">
+          <h3>余额不足，请先充值</h3>
+          <RouterLink class="balance-link" to="/profile" @click="balanceModalOpen = false">点此充值余额</RouterLink>
+        </div>
+      </div>
+
       <!-- 相关帖子 -->
       <div class="panel">
         <h3>📝 相关笔记（{{ posts.length }}）</h3>
@@ -138,6 +145,7 @@ const dishForm = ref({ name: "", price: null, description: "" });
 const dishMsg = ref("");
 const ratingOptions = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1];
 const couponMessage = ref("");
+const balanceModalOpen = ref(false);
 
 const tagList = computed(() => {
   if (!shop.value || !shop.value.tags) return [];
@@ -216,7 +224,12 @@ const buyCoupon = async (coupon) => {
     couponMessage.value = "购买成功";
     await load();
   } else {
-    couponMessage.value = res.message || "购买失败";
+    const message = res.message || "购买失败";
+    if (message.includes("insufficient balance") || message.includes("余额不足")) {
+      balanceModalOpen.value = true;
+      return;
+    }
+    couponMessage.value = message;
   }
 };
 
@@ -302,6 +315,17 @@ onMounted(load);
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+}
+.balance-modal {
+  text-align: center;
+}
+.balance-modal h3 {
+  margin: 0 0 8px;
+}
+.balance-link {
+  display: inline-block;
+  font-size: 0.85rem;
+  color: var(--accent);
 }
 .panel h3 {
   margin: 0 0 14px;
