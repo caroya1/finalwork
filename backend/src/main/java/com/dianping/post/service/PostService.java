@@ -10,6 +10,7 @@ import com.dianping.post.mapper.PostCommentMapper;
 import com.dianping.post.mapper.PostMapper;
 import com.dianping.shop.entity.Shop;
 import com.dianping.shop.mapper.ShopMapper;
+import com.dianping.user.service.UserFollowService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
@@ -24,15 +25,18 @@ public class PostService {
     private final PostCommentMapper postCommentMapper;
     private final ShopMapper shopMapper;
     private final Executor appTaskExecutor;
+    private final UserFollowService userFollowService;
 
     public PostService(PostMapper postMapper, PostLikeService postLikeService,
                        PostCommentMapper postCommentMapper, ShopMapper shopMapper,
-                       @Qualifier("appTaskExecutor") Executor appTaskExecutor) {
+                       @Qualifier("appTaskExecutor") Executor appTaskExecutor,
+                       UserFollowService userFollowService) {
         this.postMapper = postMapper;
         this.postLikeService = postLikeService;
         this.postCommentMapper = postCommentMapper;
         this.shopMapper = shopMapper;
         this.appTaskExecutor = appTaskExecutor;
+        this.userFollowService = userFollowService;
     }
 
     public List<Post> list(String city, String keyword, Long shopId) {
@@ -63,10 +67,17 @@ public class PostService {
         if (post == null) {
             throw new BusinessException("post not found");
         }
+        Long authorId = post.getUserId();
         CompletableFuture<Long> likeCountFuture = CompletableFuture.supplyAsync(
                 () -> postLikeService.countByPostId(postId), appTaskExecutor);
         CompletableFuture<Boolean> likedFuture = CompletableFuture.supplyAsync(
                 () -> postLikeService.hasLiked(postId, userId), appTaskExecutor);
+        CompletableFuture<Boolean> followedFuture = CompletableFuture.supplyAsync(() -> {
+            if (userId == null || authorId == null) {
+                return false;
+            }
+            return userFollowService.isFollowing(userId, authorId);
+        }, appTaskExecutor);
         CompletableFuture<Shop> shopFuture = CompletableFuture.supplyAsync(() -> {
             if (post.getShopId() == null) {
                 return null;
@@ -79,9 +90,10 @@ public class PostService {
                         .orderByDesc(PostComment::getCreatedAt)), appTaskExecutor);
         long likeCount = likeCountFuture.join();
         boolean liked = likedFuture.join();
+        boolean followed = followedFuture.join();
         Shop shop = shopFuture.join();
         List<PostComment> comments = commentsFuture.join();
-        return new PostDetailResponse(post, likeCount, liked, shop, comments);
+        return new PostDetailResponse(post, likeCount, liked, followed, shop, comments);
     }
 
     public Post create(Long userId, PostCreateRequest request) {

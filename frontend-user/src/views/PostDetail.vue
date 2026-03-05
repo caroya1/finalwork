@@ -29,7 +29,14 @@
             <div class="author-meta">{{ post.city }}</div>
           </div>
         </div>
-        <button class="ghost-btn">关注</button>
+        <button
+          class="ghost-btn"
+          :class="followed ? 'followed-btn' : ''"
+          :disabled="!isLoggedIn || isSelf || followLoading"
+          @click="toggleFollow"
+        >
+          {{ followLoading ? '处理中...' : (followed ? '已关注' : '关注') }}
+        </button>
       </div>
 
       <h2 class="post-title">{{ post.title }}</h2>
@@ -89,17 +96,21 @@
 import { ref, onMounted, watch } from "vue";
 import { useRoute, RouterLink } from "vue-router";
 import { getPostDetail, likePost as likePostApi, unlikePost as unlikePostApi, addComment } from "../api/post";
+import { followUser, unfollowUser } from "../api/user";
 
 const route = useRoute();
 const post = ref(null);
 const likeCount = ref(0);
 const liked = ref(false);
+const followed = ref(false);
+const followLoading = ref(false);
 const comments = ref([]);
 const shop = ref(null);
 const commentInput = ref("");
 const actionMessage = ref("");
 const isLoggedIn = ref(false);
 const tagList = ref([]);
+const isSelf = ref(false);
 
 const loadPost = async () => {
   const response = await getPostDetail(route.params.id);
@@ -107,9 +118,12 @@ const loadPost = async () => {
     post.value = response.data.post;
     likeCount.value = response.data.likeCount;
     liked.value = response.data.liked;
+    followed.value = !!response.data.followed;
     comments.value = response.data.comments || [];
     shop.value = response.data.shop || null;
     tagList.value = post.value.tags ? post.value.tags.split(",") : [];
+    const userId = localStorage.getItem("dp_user_id");
+    isSelf.value = !!userId && post.value && String(userId) === String(post.value.userId);
   } else {
     actionMessage.value = response.message || "加载失败";
   }
@@ -153,6 +167,31 @@ const submitComment = async () => {
   } else {
     actionMessage.value = response.message || "评论失败";
   }
+};
+
+const toggleFollow = async () => {
+  if (!isLoggedIn.value || !post.value || isSelf.value) {
+    return;
+  }
+  followLoading.value = true;
+  if (followed.value) {
+    const response = await unfollowUser(post.value.userId);
+    if (response.success) {
+      followed.value = false;
+      actionMessage.value = "已取消关注";
+    } else {
+      actionMessage.value = response.message || "取消关注失败";
+    }
+  } else {
+    const response = await followUser(post.value.userId);
+    if (response.success) {
+      followed.value = true;
+      actionMessage.value = "关注成功";
+    } else {
+      actionMessage.value = response.message || "关注失败";
+    }
+  }
+  followLoading.value = false;
 };
 
 watch(commentInput, () => {

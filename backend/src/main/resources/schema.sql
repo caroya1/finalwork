@@ -8,6 +8,7 @@ CREATE DATABASE IF NOT EXISTS dianping DEFAULT CHARACTER SET utf8mb4 COLLATE utf
 USE dianping;
 
 -- 按外键依赖顺序先删除子表，再删除父表
+DROP TABLE IF EXISTS dp_user_follow;
 DROP TABLE IF EXISTS dp_post_comment;
 DROP TABLE IF EXISTS dp_post_like;
 DROP TABLE IF EXISTS dp_shop_rating;
@@ -39,6 +40,21 @@ CREATE TABLE dp_user (
   INDEX idx_user_role (user_role),
   INDEX idx_user_city (city)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户表';
+
+-- ============================================================
+-- 1.1 用户关注表
+-- ============================================================
+CREATE TABLE dp_user_follow (
+  id            BIGINT       AUTO_INCREMENT PRIMARY KEY,
+  follower_id   BIGINT       NOT NULL COMMENT '关注者用户ID',
+  following_id  BIGINT       NOT NULL COMMENT '被关注用户ID',
+  created_at    DATETIME     NOT NULL COMMENT '关注时间',
+  UNIQUE KEY uk_follow (follower_id, following_id),
+  INDEX idx_follow_follower (follower_id),
+  INDEX idx_following (following_id),
+  CONSTRAINT fk_follow_follower FOREIGN KEY (follower_id) REFERENCES dp_user(id) ON DELETE CASCADE,
+  CONSTRAINT fk_following FOREIGN KEY (following_id) REFERENCES dp_user(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户关注表';
 
 -- ============================================================
 -- 2. 商户表

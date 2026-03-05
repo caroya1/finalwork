@@ -11,3 +11,12 @@ export const rechargeBalance = (userId, amount) =>
 
 export const getProfile = (userId) =>
   client.get(`/api/users/${userId}/profile`).then((res) => res.data);
+
+export const followUser = (userId) =>
+  client.post(`/api/users/${userId}/follow`).then((res) => res.data);
+
+export const unfollowUser = (userId) =>
+  client.delete(`/api/users/${userId}/follow`).then((res) => res.data);
+
+export const getFollowStatus = (userId) =>
+  client.get(`/api/users/${userId}/follow/status`).then((res) => res.data);
