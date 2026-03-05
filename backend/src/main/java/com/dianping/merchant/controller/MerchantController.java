@@ -28,4 +28,19 @@ public class MerchantController {
     public ApiResponse<List<Merchant>> list() {
         return ApiResponse.ok(merchantService.list());
     }
+
+    @GetMapping("/{id}")
+    public ApiResponse<Merchant> detail(@PathVariable("id") Long id) {
+        Merchant merchant = merchantService.getById(id);
+        if (merchant == null) {
+            return ApiResponse.fail("merchant not found");
+        }
+        return ApiResponse.ok(merchant);
+    }
+
+    @PutMapping("/{id}")
+    public ApiResponse<Merchant> update(@PathVariable("id") Long id,
+                                        @RequestBody Merchant merchant) {
+        return ApiResponse.ok(merchantService.update(id, merchant));
+    }
 }
