@@ -12,15 +12,7 @@
     <div class="hero-card">
       <h2>发布帖子</h2>
       <p>分享你的真实体验，记录城市里的美好瞬间。</p>
-      <div class="form-grid">
-        <input v-model="postForm.title" placeholder="标题" />
-        <input v-model="postForm.shopId" placeholder="关联商铺 ID（可选）" />
-        <input v-model="postForm.tags" placeholder="标签，逗号分隔（可选）" />
-        <input v-model="postForm.coverUrl" placeholder="封面图片 URL（可选）" />
-        <textarea v-model="postForm.content" class="post-textarea" placeholder="说说你的体验..." />
-        <button class="cta" @click="submitPost">发布帖子</button>
-        <span v-if="postMessage">{{ postMessage }}</span>
-      </div>
+      <button class="cta" @click="goCreatePost">去发布</button>
       <div v-if="!isLoggedIn" class="hint">登录后可发布帖子</div>
     </div>
     <div class="hero-card">
@@ -88,7 +80,7 @@
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import { fetchRecommendations } from "../api/recommendation";
-import { listPosts, createPost } from "../api/post";
+import { listPosts } from "../api/post";
 
 const router = useRouter();
 
@@ -98,16 +90,7 @@ const form = ref({
 
 const recommendations = ref([]);
 const recMessage = ref("");
-const postMessage = ref("");
 const isLoggedIn = ref(false);
-
-const postForm = ref({
-  title: "",
-  shopId: "",
-  tags: "",
-  coverUrl: "",
-  content: ""
-});
 
 const categories = ref([
   { icon: "🍜", label: "美食", desc: "今日爆款", query: "美食" },
@@ -160,37 +143,12 @@ const loadPosts = async (keyword) => {
   }
 };
 
-const submitPost = async () => {
-  postMessage.value = "";
+const goCreatePost = () => {
   if (!isLoggedIn.value) {
-    postMessage.value = "请先登录后发布";
     window.dispatchEvent(new CustomEvent("dp-auth-required"));
     return;
   }
-  if (!postForm.value.title.trim() || !postForm.value.content.trim()) {
-    postMessage.value = "请填写标题和内容";
-    return;
-  }
-  if (postForm.value.shopId && Number.isNaN(Number(postForm.value.shopId))) {
-    postMessage.value = "商铺 ID 需为数字";
-    return;
-  }
-  const payload = {
-    title: postForm.value.title.trim(),
-    content: postForm.value.content.trim(),
-    shopId: postForm.value.shopId ? Number(postForm.value.shopId) : null,
-    tags: postForm.value.tags || null,
-    coverUrl: postForm.value.coverUrl || null,
-    city: localStorage.getItem("dp_city") || "上海"
-  };
-  const response = await createPost(payload);
-  if (response.success) {
-    postMessage.value = "发布成功";
-    postForm.value = { title: "", shopId: "", tags: "", coverUrl: "", content: "" };
-    await loadPosts("");
-  } else {
-    postMessage.value = response.message || "发布失败";
-  }
+  router.push("/posts/new");
 };
 
 const goCategory = (item) => {

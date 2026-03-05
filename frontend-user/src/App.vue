@@ -1,13 +1,13 @@
 <template>
   <div class="app-shell">
     <header class="app-header">
-      <div class="brand">
+      <RouterLink class="brand brand-link" to="/">
         <span class="brand-mark">DP</span>
         <div>
           <h1>类大众点评</h1>
           <p>发现 · 评价 · 到店</p>
         </div>
-      </div>
+      </RouterLink>
       <div class="header-search">
         <div class="location" @click="openCityPicker" title="点击切换城市">
           <span>{{ currentCity }}</span>

@@ -1,12 +1,14 @@
 import { createRouter, createWebHistory } from "vue-router";
 import UserHome from "../views/UserHome.vue";
 import PostDetail from "../views/PostDetail.vue";
+import PostCreate from "../views/PostCreate.vue";
 import CategoryShops from "../views/CategoryShops.vue";
 import ShopDetail from "../views/ShopDetail.vue";
 import UserProfile from "../views/UserProfile.vue";
 
 const routes = [
   { path: "/", component: UserHome },
+  { path: "/posts/new", component: PostCreate },
   { path: "/posts/:id", component: PostDetail },
   { path: "/category", component: CategoryShops },
   { path: "/shops/:id", component: ShopDetail },
