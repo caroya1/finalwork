@@ -8,3 +8,6 @@ export const updateCity = (userId, city) =>
 
 export const rechargeBalance = (userId, amount) =>
   client.post(`/api/users/${userId}/recharge`, { amount }).then((res) => res.data);
+
+export const getProfile = (userId) =>
+  client.get(`/api/users/${userId}/profile`).then((res) => res.data);

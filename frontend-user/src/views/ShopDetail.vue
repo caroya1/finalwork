@@ -88,11 +88,32 @@
               <span v-if="coupon.type === 'seckill'" class="tag">剩余 {{ coupon.remainingStock || 0 }}</span>
             </div>
           </div>
-          <button class="cta small-cta" @click="buyCoupon(coupon)">
+          <button class="cta small-cta" @click="openCouponConfirm(coupon)">
             {{ coupon.type === 'seckill' ? '秒杀' : '购买' }}
           </button>
         </div>
         <div v-if="couponMessage" class="rec-message">{{ couponMessage }}</div>
+      </div>
+
+      <div v-if="couponConfirmOpen" class="auth-overlay" @click.self="closeCouponConfirm">
+        <div class="auth-card coupon-confirm">
+          <div class="confirm-header">
+            <h3>确认购买</h3>
+            <button class="auth-close" @click="closeCouponConfirm">×</button>
+          </div>
+          <p class="confirm-title">{{ selectedCoupon?.title }}</p>
+          <p class="confirm-desc">{{ selectedCoupon?.description || '限店铺使用' }}</p>
+          <div class="confirm-meta">
+            <span class="tag">售价 ¥{{ selectedCoupon?.price || 0 }}</span>
+            <span class="tag">优惠 ¥{{ selectedCoupon?.discountAmount }}</span>
+            <span class="tag">余额 ¥{{ userBalance.toFixed(2) }}</span>
+          </div>
+          <div class="confirm-actions">
+            <button class="ghost-btn" @click="closeCouponConfirm">取消</button>
+            <button class="cta" @click="confirmBuyCoupon">确认购买</button>
+          </div>
+          <div v-if="couponMessage" class="rec-message">{{ couponMessage }}</div>
+        </div>
       </div>
 
       <div v-if="balanceModalOpen" class="auth-overlay" @click.self="balanceModalOpen = false">
@@ -132,6 +153,7 @@
 import { ref, onMounted, computed } from "vue";
 import { useRoute, RouterLink } from "vue-router";
 import { getShopDetail, rateShop, addDish, listCoupons, purchaseCoupon } from "../api/shop";
+import { getProfile } from "../api/user";
 
 const route = useRoute();
 const shop = ref(null);
@@ -146,6 +168,9 @@ const dishMsg = ref("");
 const ratingOptions = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1];
 const couponMessage = ref("");
 const balanceModalOpen = ref(false);
+const couponConfirmOpen = ref(false);
+const selectedCoupon = ref(null);
+const userBalance = ref(0);
 
 const tagList = computed(() => {
   if (!shop.value || !shop.value.tags) return [];
@@ -212,16 +237,39 @@ const submitDish = async () => {
 };
 
 
-const buyCoupon = async (coupon) => {
+const openCouponConfirm = (coupon) => {
   couponMessage.value = "";
   const userId = localStorage.getItem("dp_user_id");
   if (!userId) {
     couponMessage.value = "请先登录";
     return;
   }
-  const res = await purchaseCoupon(coupon.id, Number(userId));
+  selectedCoupon.value = coupon;
+  couponConfirmOpen.value = true;
+  loadUserBalance();
+};
+
+const closeCouponConfirm = () => {
+  couponConfirmOpen.value = false;
+  selectedCoupon.value = null;
+};
+
+const confirmBuyCoupon = async () => {
+  couponMessage.value = "";
+  const userId = localStorage.getItem("dp_user_id");
+  if (!userId) {
+    couponMessage.value = "请先登录";
+    return;
+  }
+  if (!selectedCoupon.value) {
+    couponMessage.value = "请选择优惠券";
+    return;
+  }
+  const res = await purchaseCoupon(selectedCoupon.value.id, Number(userId));
   if (res.success) {
     couponMessage.value = "购买成功";
+    couponConfirmOpen.value = false;
+    await loadUserBalance();
     await load();
   } else {
     const message = res.message || "购买失败";
@@ -233,7 +281,19 @@ const buyCoupon = async (coupon) => {
   }
 };
 
-onMounted(load);
+const loadUserBalance = async () => {
+  const userId = localStorage.getItem("dp_user_id");
+  if (!userId) return;
+  const response = await getProfile(userId);
+  if (response.success && response.data && typeof response.data.balance === "number") {
+    userBalance.value = response.data.balance;
+  }
+};
+
+onMounted(async () => {
+  await load();
+  await loadUserBalance();
+});
 </script>
 
 <style scoped>
@@ -321,6 +381,35 @@ onMounted(load);
 }
 .balance-modal h3 {
   margin: 0 0 8px;
+}
+.coupon-confirm {
+  max-width: 460px;
+}
+.confirm-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.confirm-title {
+  font-weight: 600;
+  margin: 0 0 6px;
+}
+.confirm-desc {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0 0 12px;
+}
+.confirm-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
 }
 .balance-link {
   display: inline-block;
