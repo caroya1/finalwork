@@ -85,22 +85,12 @@ public class ShopService {
     }
 
     public List<Shop> search(String city, String keyword) {
-        LambdaQueryWrapper<Shop> wrapper = new LambdaQueryWrapper<>();
-        if (city != null && !city.trim().isEmpty()) {
-            wrapper.eq(Shop::getCity, city.trim());
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return new ArrayList<>();
         }
-        if (keyword != null && !keyword.trim().isEmpty()) {
-            String like = "%" + keyword.trim() + "%";
-            wrapper.and(w -> w.like(Shop::getName, like)
-                    .or()
-                    .like(Shop::getCategory, like)
-                    .or()
-                    .like(Shop::getTags, like)
-                    .or()
-                    .like(Shop::getAddress, like));
-        }
-        wrapper.orderByDesc(Shop::getRating).orderByDesc(Shop::getCreatedAt);
-        return shopMapper.selectList(wrapper);
+        String trimmedCity = city == null ? null : city.trim();
+        String trimmedKeyword = keyword.trim();
+        return shopMapper.search(trimmedCity, trimmedKeyword);
     }
 
     public void invalidateCache(Long shopId, String city, String category) {
