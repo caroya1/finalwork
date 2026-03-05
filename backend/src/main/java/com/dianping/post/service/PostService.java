@@ -121,6 +121,17 @@ public class PostService {
         return post;
     }
 
+    public void delete(Long postId, Long userId) {
+        Post post = postMapper.selectById(postId);
+        if (post == null) {
+            throw new BusinessException("post not found");
+        }
+        if (userId == null || post.getUserId() == null || !post.getUserId().equals(userId)) {
+            throw new BusinessException("no permission");
+        }
+        postMapper.deleteById(postId);
+    }
+
     private String resolveCity(String city, Shop shop) {
         if (city != null && !city.trim().isEmpty()) {
             return city.trim();

@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.DeleteMapping;
 
 import javax.validation.Valid;
 
@@ -64,5 +65,15 @@ public class PostController {
         }
         Long userId = Long.parseLong(authentication.getPrincipal().toString());
         return ApiResponse.ok(postService.create(userId, request));
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> delete(@PathVariable("id") Long id, Authentication authentication) {
+        if (authentication == null || authentication.getPrincipal() == null) {
+            return ApiResponse.fail("login required");
+        }
+        Long userId = Long.parseLong(authentication.getPrincipal().toString());
+        postService.delete(id, userId);
+        return ApiResponse.ok(null);
     }
 }

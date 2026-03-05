@@ -28,6 +28,7 @@ public class SecurityConfig {
                 .authorizeRequests()
                 .antMatchers("/api/auth/**", "/api/users", "/api/users/*/city", "/api/users/*/recharge", "/api/users/*/profile").permitAll()
                 .antMatchers(HttpMethod.GET, "/api/posts", "/api/posts/*").permitAll()
+                .antMatchers(HttpMethod.DELETE, "/api/posts/*").authenticated()
                 .antMatchers(HttpMethod.GET, "/api/shops", "/api/shops/*", "/api/shops/*/dishes").permitAll()
                 .antMatchers(HttpMethod.POST, "/api/posts/*/like", "/api/posts/*/comments", "/api/shops/*/rate", "/api/shops/*/dishes").permitAll()
                 .antMatchers(HttpMethod.DELETE, "/api/posts/*/like").permitAll()

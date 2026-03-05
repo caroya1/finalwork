@@ -17,3 +17,6 @@ export const addComment = (id, content) =>
 
 export const createPost = (payload) =>
   client.post("/api/posts", payload).then((res) => res.data);
+
+export const deletePost = (id) =>
+  client.delete(`/api/posts/${id}`).then((res) => res.data);

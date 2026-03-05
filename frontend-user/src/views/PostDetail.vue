@@ -29,14 +29,24 @@
             <div class="author-meta">{{ post.city }}</div>
           </div>
         </div>
-        <button
-          class="ghost-btn"
-          :class="followed ? 'followed-btn' : ''"
-          :disabled="!isLoggedIn || isSelf || followLoading"
-          @click="toggleFollow"
-        >
-          {{ followLoading ? '处理中...' : (followed ? '已关注' : '关注') }}
-        </button>
+        <div class="author-actions">
+          <button
+            class="ghost-btn"
+            :class="followed ? 'followed-btn' : ''"
+            :disabled="!isLoggedIn || isSelf || followLoading"
+            @click="toggleFollow"
+          >
+            {{ followLoading ? '处理中...' : (followed ? '已关注' : '关注') }}
+          </button>
+          <button
+            v-if="isSelf"
+            class="ghost-btn delete-btn"
+            :disabled="deleteLoading"
+            @click="deletePostConfirm"
+          >
+            {{ deleteLoading ? '删除中...' : '删除' }}
+          </button>
+        </div>
       </div>
 
       <h2 class="post-title">{{ post.title }}</h2>
@@ -94,16 +104,18 @@
 
 <script setup>
 import { ref, onMounted, watch } from "vue";
-import { useRoute, RouterLink } from "vue-router";
-import { getPostDetail, likePost as likePostApi, unlikePost as unlikePostApi, addComment } from "../api/post";
+import { useRoute, RouterLink, useRouter } from "vue-router";
+import { getPostDetail, likePost as likePostApi, unlikePost as unlikePostApi, addComment, deletePost } from "../api/post";
 import { followUser, unfollowUser } from "../api/user";
 
 const route = useRoute();
+const router = useRouter();
 const post = ref(null);
 const likeCount = ref(0);
 const liked = ref(false);
 const followed = ref(false);
 const followLoading = ref(false);
+const deleteLoading = ref(false);
 const comments = ref([]);
 const shop = ref(null);
 const commentInput = ref("");
@@ -192,6 +204,24 @@ const toggleFollow = async () => {
     }
   }
   followLoading.value = false;
+};
+
+const deletePostConfirm = async () => {
+  if (!post.value) return;
+  if (!window.confirm("确认删除该帖子？")) {
+    return;
+  }
+  deleteLoading.value = true;
+  const response = await deletePost(post.value.id);
+  if (response.success) {
+    actionMessage.value = "帖子已删除";
+    setTimeout(() => {
+      router.push("/profile");
+    }, 300);
+  } else {
+    actionMessage.value = response.message || "删除失败";
+  }
+  deleteLoading.value = false;
 };
 
 watch(commentInput, () => {
