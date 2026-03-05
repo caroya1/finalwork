@@ -24,7 +24,9 @@ public class CouponController {
 
     @PostMapping
     public ApiResponse<Coupon> create(@Valid @RequestBody CouponCreateRequest request) {
-        return ApiResponse.ok(couponService.create(request));
+        Coupon coupon = couponService.create(request);
+        couponService.cacheSeckillCoupon(coupon.getId());
+        return ApiResponse.ok(coupon);
     }
 
     @GetMapping

@@ -110,7 +110,7 @@
           </div>
           <div class="confirm-actions">
             <button class="ghost-btn" @click="closeCouponConfirm">取消</button>
-            <button class="cta" @click="confirmBuyCoupon">确认购买</button>
+          <button class="cta" @click="confirmBuyCoupon">确认购买</button>
           </div>
           <div v-if="couponMessage" class="rec-message">{{ couponMessage }}</div>
         </div>
@@ -267,18 +267,18 @@ const confirmBuyCoupon = async () => {
   }
   const res = await purchaseCoupon(selectedCoupon.value.id, Number(userId));
   if (res.success) {
-    couponMessage.value = "购买成功";
+    couponMessage.value = "已购买";
     couponConfirmOpen.value = false;
     await loadUserBalance();
     await load();
-  } else {
-    const message = res.message || "购买失败";
-    if (message.includes("insufficient balance") || message.includes("余额不足")) {
-      balanceModalOpen.value = true;
-      return;
-    }
-    couponMessage.value = message;
+    return;
   }
+  const message = res.message || "购买失败";
+  if (message.includes("insufficient balance") || message.includes("余额不足")) {
+    balanceModalOpen.value = true;
+    return;
+  }
+  couponMessage.value = "";
 };
 
 const loadUserBalance = async () => {

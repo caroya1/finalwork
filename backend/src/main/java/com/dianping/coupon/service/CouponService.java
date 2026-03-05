@@ -3,35 +3,82 @@ package com.dianping.coupon.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dianping.common.exception.BusinessException;
 import com.dianping.coupon.dto.CouponCreateRequest;
+import com.dianping.coupon.dto.SeckillOrderMessage;
 import com.dianping.coupon.entity.Coupon;
 import com.dianping.coupon.entity.CouponPurchase;
 import com.dianping.coupon.mapper.CouponMapper;
 import com.dianping.coupon.mapper.CouponPurchaseMapper;
 import com.dianping.user.service.UserService;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class CouponService {
     private static final String TYPE_NORMAL = "normal";
     private static final String TYPE_SECKILL = "seckill";
+    private static final String SECKILL_STOCK_KEY_PREFIX = "dp:seckill:stock:";
+    private static final String SECKILL_USER_KEY_PREFIX = "dp:seckill:user:";
+    private static final String SECKILL_COUPON_KEY_PREFIX = "dp:seckill:coupon:";
+    private static final DefaultRedisScript<Long> SECKILL_SCRIPT;
+
+    static {
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>();
+        script.setResultType(Long.class);
+        script.setScriptText(
+                "local stock = tonumber(redis.call('get', KEYS[1]));" +
+                "if not stock then return -1 end;" +
+                "if stock <= 0 then return 0 end;" +
+                "if redis.call('exists', KEYS[2]) == 1 then return 2 end;" +
+                "redis.call('decr', KEYS[1]);" +
+                "redis.call('set', KEYS[2], '1', 'EX', ARGV[1]);" +
+                "return 1;"
+        );
+        SECKILL_SCRIPT = script;
+    }
 
     private final CouponMapper couponMapper;
     private final CouponPurchaseMapper couponPurchaseMapper;
     private final UserService userService;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final RabbitTemplate rabbitTemplate;
+    private final RedissonClient redissonClient;
+    private final String seckillQueueName;
 
     public CouponService(CouponMapper couponMapper,
                          CouponPurchaseMapper couponPurchaseMapper,
-                         UserService userService) {
+                         UserService userService,
+                         RedisTemplate<String, Object> redisTemplate,
+                         StringRedisTemplate stringRedisTemplate,
+                         RabbitTemplate rabbitTemplate,
+                         RedissonClient redissonClient,
+                         @Value("${app.seckill.queue-name:dp.seckill.coupon.queue}") String seckillQueueName) {
         this.couponMapper = couponMapper;
         this.couponPurchaseMapper = couponPurchaseMapper;
         this.userService = userService;
+        this.redisTemplate = redisTemplate;
+        this.stringRedisTemplate = stringRedisTemplate;
+        this.rabbitTemplate = rabbitTemplate;
+        this.redissonClient = redissonClient;
+        this.seckillQueueName = seckillQueueName;
     }
 
     public Coupon create(CouponCreateRequest request) {
@@ -78,6 +125,7 @@ public class CouponService {
         }
         coupon.touchForCreate();
         couponMapper.insert(coupon);
+        cacheSeckillCoupon(coupon.getId());
         return coupon;
     }
 
@@ -92,19 +140,7 @@ public class CouponService {
             throw new BusinessException("coupon not found");
         }
         if (TYPE_SECKILL.equals(coupon.getType())) {
-            LocalDateTime now = LocalDateTime.now();
-            if (coupon.getStartTime() != null && now.isBefore(coupon.getStartTime())) {
-                throw new BusinessException("seckill not started");
-            }
-            if (coupon.getEndTime() != null && now.isAfter(coupon.getEndTime())) {
-                throw new BusinessException("seckill ended");
-            }
-            if (coupon.getRemainingStock() == null || coupon.getRemainingStock() <= 0) {
-                throw new BusinessException("coupon sold out");
-            }
-            coupon.setRemainingStock(coupon.getRemainingStock() - 1);
-            coupon.touchForUpdate();
-            couponMapper.updateById(coupon);
+            return handleSeckillPurchase(coupon, userId);
         }
 
         BigDecimal price = coupon.getPrice() == null ? BigDecimal.ZERO : coupon.getPrice();
@@ -120,6 +156,127 @@ public class CouponService {
         purchase.touchForCreate();
         couponPurchaseMapper.insert(purchase);
         return purchase;
+    }
+
+    private CouponPurchase handleSeckillPurchase(Coupon coupon, Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        if (coupon.getStartTime() != null && now.isBefore(coupon.getStartTime())) {
+            throw new BusinessException("seckill not started");
+        }
+        if (coupon.getEndTime() != null && now.isAfter(coupon.getEndTime())) {
+            throw new BusinessException("seckill ended");
+        }
+        String stockKey = SECKILL_STOCK_KEY_PREFIX + coupon.getId();
+        String userKey = SECKILL_USER_KEY_PREFIX + coupon.getId() + ":" + userId;
+        long ttlSeconds = resolveSeckillTtlSeconds(coupon, now);
+        Long result = executeSeckillScript(stockKey, userKey, ttlSeconds);
+        if (result == null || result == -1L) {
+            cacheSeckillCoupon(coupon);
+            result = executeSeckillScript(stockKey, userKey, ttlSeconds);
+        }
+        if (result == null || result == -1L) {
+            throw new BusinessException("seckill not ready");
+        }
+        if (result == 0L) {
+            throw new BusinessException("coupon sold out");
+        }
+        if (result == 2L) {
+            throw new BusinessException("already purchased");
+        }
+        CouponPurchase purchase = new CouponPurchase();
+        purchase.setCouponId(coupon.getId());
+        purchase.setUserId(userId);
+        purchase.setAmount(coupon.getPrice() == null ? BigDecimal.ZERO : coupon.getPrice());
+        purchase.setStatus("processing");
+        purchase.touchForCreate();
+        couponPurchaseMapper.insert(purchase);
+        rabbitTemplate.convertAndSend(seckillQueueName, new SeckillOrderMessage(coupon.getId(), userId));
+        return purchase;
+    }
+
+    public void handleSeckillOrder(Long couponId, Long userId) {
+        String lockKey = "dp:seckill:lock:" + couponId + ":" + userId;
+        RLock lock = redissonClient.getLock(lockKey);
+        boolean locked = false;
+        try {
+            locked = lock.tryLock(5, 10, TimeUnit.SECONDS);
+            if (!locked) {
+                throw new BusinessException("seckill busy");
+            }
+            Coupon coupon = couponMapper.selectById(couponId);
+            if (coupon == null) {
+                throw new BusinessException("coupon not found");
+            }
+            if (coupon.getRemainingStock() == null || coupon.getRemainingStock() <= 0) {
+                throw new BusinessException("coupon sold out");
+            }
+            CouponPurchase existing = couponPurchaseMapper.selectOne(new LambdaQueryWrapper<CouponPurchase>()
+                    .eq(CouponPurchase::getCouponId, couponId)
+                    .eq(CouponPurchase::getUserId, userId)
+                    .orderByDesc(CouponPurchase::getCreatedAt)
+                    .last("LIMIT 1"));
+            if (existing != null && "paid".equals(existing.getStatus())) {
+                return;
+            }
+            BigDecimal price = coupon.getPrice() == null ? BigDecimal.ZERO : coupon.getPrice();
+            if (price.compareTo(BigDecimal.ZERO) > 0) {
+                userService.deductBalance(userId, price);
+            }
+            coupon.setRemainingStock(coupon.getRemainingStock() - 1);
+            coupon.touchForUpdate();
+            couponMapper.updateById(coupon);
+            if (existing != null) {
+                existing.setStatus("paid");
+                couponPurchaseMapper.updateById(existing);
+            } else {
+                CouponPurchase purchase = new CouponPurchase();
+                purchase.setCouponId(couponId);
+                purchase.setUserId(userId);
+                purchase.setAmount(price);
+                purchase.setStatus("paid");
+                purchase.touchForCreate();
+                couponPurchaseMapper.insert(purchase);
+            }
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException("seckill interrupted");
+        } finally {
+            if (locked && lock.isHeldByCurrentThread()) {
+                lock.unlock();
+            }
+        }
+    }
+
+    private void cacheSeckillCoupon(Coupon coupon) {
+        long ttlSeconds = resolveSeckillTtlSeconds(coupon, LocalDateTime.now());
+        stringRedisTemplate.opsForValue().set(SECKILL_STOCK_KEY_PREFIX + coupon.getId(),
+                String.valueOf(coupon.getRemainingStock()), ttlSeconds, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set(SECKILL_COUPON_KEY_PREFIX + coupon.getId(), coupon, ttlSeconds, TimeUnit.SECONDS);
+    }
+
+    public void cacheSeckillCoupon(Long couponId) {
+        if (couponId == null) {
+            return;
+        }
+        Coupon coupon = couponMapper.selectById(couponId);
+        if (coupon == null || !TYPE_SECKILL.equals(coupon.getType())) {
+            return;
+        }
+        cacheSeckillCoupon(coupon);
+    }
+
+    private Long executeSeckillScript(String stockKey, String userKey, long ttlSeconds) {
+        return stringRedisTemplate.execute(SECKILL_SCRIPT, Arrays.asList(stockKey, userKey), String.valueOf(ttlSeconds));
+    }
+
+    private long resolveSeckillTtlSeconds(Coupon coupon, LocalDateTime now) {
+        if (coupon.getEndTime() != null) {
+            long seconds = Duration.between(now, coupon.getEndTime()).getSeconds();
+            if (seconds > 0) {
+                return Math.max(seconds, 60);
+            }
+        }
+        return TimeUnit.DAYS.toSeconds(1);
     }
 
     private String normalizeType(String type) {

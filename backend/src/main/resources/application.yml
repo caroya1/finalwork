@@ -28,6 +28,11 @@ spring:
     host: 192.168.145.128
     port: 6379
     password: 123456
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
   kafka:
     bootstrap-servers: localhost:9092
     consumer:
@@ -40,6 +45,8 @@ spring:
 app:
   recommendation:
     cache-ttl-seconds: 300
+  seckill:
+    queue-name: dp.seckill.coupon.queue
   jwt:
     secret: DianpingJwtSecretKey-ChangeMe-2026
     expire-minutes: 120

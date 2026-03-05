@@ -68,7 +68,7 @@
           >注册</button>
         </div>
         <div class="form-grid">
-          <input v-model="authForm.username" placeholder="用户名" />
+          <input v-model="authForm.username" placeholder="用户名 / 手机 / 邮箱" />
           <input v-model="authForm.password" :type="showPassword ? 'text' : 'password'" placeholder="密码" />
           <label class="password-toggle">
             <input v-model="showPassword" type="checkbox" />
