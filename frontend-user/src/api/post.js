@@ -14,3 +14,6 @@ export const unlikePost = (id) =>
 
 export const addComment = (id, content) =>
   client.post(`/api/posts/${id}/comments`, { content }).then((res) => res.data);
+
+export const createPost = (payload) =>
+  client.post("/api/posts", payload).then((res) => res.data);

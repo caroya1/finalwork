@@ -777,6 +777,16 @@ a {
   background: #f2f2f2;
 }
 
+.post-textarea {
+  min-height: 120px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  resize: vertical;
+  font-family: inherit;
+}
+
 .action-message {
   font-size: 0.85rem;
   color: var(--accent);

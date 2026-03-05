@@ -11,12 +11,15 @@ import com.dianping.coupon.dto.UserCouponView;
 import com.dianping.coupon.service.UserCouponService;
 import com.dianping.user.entity.User;
 import com.dianping.user.service.UserService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 @RestController
 @RequestMapping("/api/users")
@@ -25,11 +28,15 @@ public class UserController {
     private final UserService userService;
     private final PostService postService;
     private final UserCouponService userCouponService;
+    private final Executor appTaskExecutor;
 
-    public UserController(UserService userService, PostService postService, UserCouponService userCouponService) {
+    public UserController(UserService userService, PostService postService,
+                          UserCouponService userCouponService,
+                          @Qualifier("appTaskExecutor") Executor appTaskExecutor) {
         this.userService = userService;
         this.postService = postService;
         this.userCouponService = userCouponService;
+        this.appTaskExecutor = appTaskExecutor;
     }
 
     @PostMapping
@@ -60,8 +67,12 @@ public class UserController {
         if (user == null) {
             return ApiResponse.fail("user not found");
         }
-        List<Post> posts = postService.listByUser(id);
-        List<UserCouponView> coupons = userCouponService.listByUser(id);
+        CompletableFuture<List<Post>> postsFuture = CompletableFuture.supplyAsync(
+                () -> postService.listByUser(id), appTaskExecutor);
+        CompletableFuture<List<UserCouponView>> couponsFuture = CompletableFuture.supplyAsync(
+                () -> userCouponService.listByUser(id), appTaskExecutor);
+        List<Post> posts = postsFuture.join();
+        List<UserCouponView> coupons = couponsFuture.join();
         UserProfileResponse response = new UserProfileResponse(
                 user.getId(),
                 user.getUsername(),

@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -114,8 +115,8 @@ public class ShopService {
     }
 
     private String buildListCacheKey(String city, String category) {
-        String safeCity = city == null ? "all" : city.trim();
-        String safeCategory = category == null ? "all" : category.trim();
+        String safeCity = StringUtils.hasText(city) ? city.trim() : "all";
+        String safeCategory = StringUtils.hasText(category) ? category.trim() : "all";
         return SHOP_LIST_CACHE_PREFIX + safeCity + ":" + safeCategory;
     }
 

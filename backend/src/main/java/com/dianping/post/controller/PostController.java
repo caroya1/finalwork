@@ -1,6 +1,7 @@
 package com.dianping.post.controller;
 
 import com.dianping.common.api.ApiResponse;
+import com.dianping.post.dto.PostCreateRequest;
 import com.dianping.post.dto.PostDetailResponse;
 import com.dianping.post.entity.Post;
 import com.dianping.post.dto.PostCommentRequest;
@@ -53,5 +54,15 @@ public class PostController {
         Long userId = Long.parseLong(authentication.getPrincipal().toString());
         postCommentService.addComment(id, userId, request);
         return ApiResponse.ok(null);
+    }
+
+    @PostMapping
+    public ApiResponse<Post> create(@Valid @RequestBody PostCreateRequest request,
+                                    Authentication authentication) {
+        if (authentication == null || authentication.getPrincipal() == null) {
+            return ApiResponse.fail("login required");
+        }
+        Long userId = Long.parseLong(authentication.getPrincipal().toString());
+        return ApiResponse.ok(postService.create(userId, request));
     }
 }

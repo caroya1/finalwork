@@ -6,6 +6,7 @@ import com.dianping.recommendation.mapper.RecommendationLogMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dianping.shop.entity.Shop;
 import com.dianping.shop.mapper.ShopMapper;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import org.springframework.util.CollectionUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -24,15 +26,18 @@ public class RecommendationService {
     private final RecommendationLogMapper logMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final long cacheTtlSeconds;
+    private final Executor appTaskExecutor;
 
     public RecommendationService(ShopMapper shopMapper,
                                  RecommendationLogMapper logMapper,
                                  RedisTemplate<String, Object> redisTemplate,
-                                 @Value("${app.recommendation.cache-ttl-seconds:300}") long cacheTtlSeconds) {
+                                 @Value("${app.recommendation.cache-ttl-seconds:300}") long cacheTtlSeconds,
+                                 @Qualifier("appTaskExecutor") Executor appTaskExecutor) {
         this.shopMapper = shopMapper;
         this.logMapper = logMapper;
         this.redisTemplate = redisTemplate;
         this.cacheTtlSeconds = cacheTtlSeconds;
+        this.appTaskExecutor = appTaskExecutor;
     }
 
     public List<Shop> recommend(RecommendationRequest request) {
@@ -50,15 +55,17 @@ public class RecommendationService {
             redisTemplate.opsForValue().set(cacheKey, result, cacheTtlSeconds, TimeUnit.SECONDS);
         }
 
-        for (Shop shop : result) {
-            RecommendationLog log = new RecommendationLog();
-            log.setUserId(request.getUserId());
-            log.setShopId(shop.getId());
-            log.setScene(request.getScene() == null ? "default" : request.getScene());
-            log.setAction("recommend");
-            log.touchForCreate();
-            logMapper.insert(log);
-        }
+        appTaskExecutor.execute(() -> {
+            for (Shop shop : result) {
+                RecommendationLog log = new RecommendationLog();
+                log.setUserId(request.getUserId());
+                log.setShopId(shop.getId());
+                log.setScene(request.getScene() == null ? "default" : request.getScene());
+                log.setAction("recommend");
+                log.touchForCreate();
+                logMapper.insert(log);
+            }
+        });
         return result;
     }
 

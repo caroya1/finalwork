@@ -11,12 +11,15 @@ import com.dianping.shop.service.ShopRatingService;
 import com.dianping.shop.service.ShopDishService;
 import com.dianping.post.entity.Post;
 import com.dianping.post.service.PostService;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
 
 import javax.validation.Valid;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 @RestController
 @RequestMapping("/api/shops")
@@ -26,13 +29,16 @@ public class ShopController {
     private final ShopRatingService shopRatingService;
     private final ShopDishService shopDishService;
     private final PostService postService;
+    private final Executor appTaskExecutor;
 
     public ShopController(ShopService shopService, ShopRatingService shopRatingService,
-                          ShopDishService shopDishService, PostService postService) {
+                          ShopDishService shopDishService, PostService postService,
+                          @Qualifier("appTaskExecutor") Executor appTaskExecutor) {
         this.shopService = shopService;
         this.shopRatingService = shopRatingService;
         this.shopDishService = shopDishService;
         this.postService = postService;
+        this.appTaskExecutor = appTaskExecutor;
     }
 
     @PostMapping
@@ -52,8 +58,12 @@ public class ShopController {
         if (shop == null) {
             return ApiResponse.fail("shop not found");
         }
-        List<ShopDish> dishes = shopDishService.listByShopId(id);
-        List<Post> posts = postService.list(null, null, id);
+        CompletableFuture<List<ShopDish>> dishesFuture = CompletableFuture.supplyAsync(
+                () -> shopDishService.listByShopId(id), appTaskExecutor);
+        CompletableFuture<List<Post>> postsFuture = CompletableFuture.supplyAsync(
+                () -> postService.list(null, null, id), appTaskExecutor);
+        List<ShopDish> dishes = dishesFuture.join();
+        List<Post> posts = postsFuture.join();
         return ApiResponse.ok(new ShopDetailResponse(shop, dishes, posts));
     }
 
