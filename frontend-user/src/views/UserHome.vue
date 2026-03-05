@@ -148,7 +148,14 @@ const handleSearch = (event) => {
     loadRecommendations(keyword || "");
     return;
   }
-  loadPosts(keyword || "");
+  if (keyword) {
+    router.push({
+      path: "/search",
+      query: { keyword, city: localStorage.getItem("dp_city") || "上海" }
+    });
+    return;
+  }
+  loadPosts("");
 };
 
 onMounted(() => {

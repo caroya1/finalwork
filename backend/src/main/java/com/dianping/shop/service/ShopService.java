@@ -84,6 +84,25 @@ public class ShopService {
         return shops;
     }
 
+    public List<Shop> search(String city, String keyword) {
+        LambdaQueryWrapper<Shop> wrapper = new LambdaQueryWrapper<>();
+        if (city != null && !city.trim().isEmpty()) {
+            wrapper.eq(Shop::getCity, city.trim());
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String like = "%" + keyword.trim() + "%";
+            wrapper.and(w -> w.like(Shop::getName, like)
+                    .or()
+                    .like(Shop::getCategory, like)
+                    .or()
+                    .like(Shop::getTags, like)
+                    .or()
+                    .like(Shop::getAddress, like));
+        }
+        wrapper.orderByDesc(Shop::getRating).orderByDesc(Shop::getCreatedAt);
+        return shopMapper.selectList(wrapper);
+    }
+
     public void invalidateCache(Long shopId, String city, String category) {
         if (shopId != null) {
             redisTemplate.delete(SHOP_CACHE_PREFIX + shopId);

@@ -48,7 +48,11 @@ public class ShopController {
 
     @GetMapping
     public ApiResponse<List<Shop>> list(@RequestParam(value = "city", required = false) String city,
-                                        @RequestParam(value = "category", required = false) String category) {
+                                        @RequestParam(value = "category", required = false) String category,
+                                        @RequestParam(value = "keyword", required = false) String keyword) {
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            return ApiResponse.ok(shopService.search(city, keyword));
+        }
         return ApiResponse.ok(shopService.list(city, category));
     }
 

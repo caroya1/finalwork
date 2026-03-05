@@ -153,6 +153,27 @@ onBeforeUnmount(() => {
 
 /* ---------- 搜索 ---------- */
 const emitSearch = () => {
+  const current = router.currentRoute.value;
+  if (searchMode.value === "search") {
+    if (current.path !== "/search") {
+      router.push({
+        path: "/search",
+        query: {
+          keyword: keyword.value || "",
+          city: currentCity.value
+        }
+      });
+      return;
+    }
+    router.replace({
+      path: "/search",
+      query: {
+        keyword: keyword.value || "",
+        city: currentCity.value
+      }
+    });
+    return;
+  }
   window.dispatchEvent(new CustomEvent("dp-search", {
     detail: { keyword: keyword.value, mode: searchMode.value }
   }));
@@ -160,7 +181,6 @@ const emitSearch = () => {
 
 const setSearchMode = (mode) => {
   searchMode.value = mode;
-  emitSearch();
 };
 
 /* ---------- 登录/注册弹窗 ---------- */
