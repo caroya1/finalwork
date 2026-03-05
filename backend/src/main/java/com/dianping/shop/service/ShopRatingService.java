@@ -16,10 +16,12 @@ import java.util.List;
 public class ShopRatingService {
     private final ShopRatingMapper shopRatingMapper;
     private final ShopMapper shopMapper;
+    private final ShopService shopService;
 
-    public ShopRatingService(ShopRatingMapper shopRatingMapper, ShopMapper shopMapper) {
+    public ShopRatingService(ShopRatingMapper shopRatingMapper, ShopMapper shopMapper, ShopService shopService) {
         this.shopRatingMapper = shopRatingMapper;
         this.shopMapper = shopMapper;
+        this.shopService = shopService;
     }
 
     @Transactional
@@ -68,6 +70,7 @@ public class ShopRatingService {
             shop.setRating(avg);
             shop.touchForUpdate();
             shopMapper.updateById(shop);
+            shopService.invalidateCache(shopId, shop.getCity(), shop.getCategory());
         }
     }
 }
