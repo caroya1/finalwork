@@ -43,7 +43,7 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        User user = userService.findByUsername(request.getUsername());
+        User user = userService.findByLogin(request.getUsername());
         if (user == null) {
             throw new BusinessException("invalid username or password");
         }

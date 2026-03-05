@@ -69,7 +69,11 @@
         </div>
         <div class="form-grid">
           <input v-model="authForm.username" placeholder="用户名" />
-          <input v-model="authForm.password" type="password" placeholder="密码" />
+          <input v-model="authForm.password" :type="showPassword ? 'text' : 'password'" placeholder="密码" />
+          <label class="password-toggle">
+            <input v-model="showPassword" type="checkbox" />
+            显示密码
+          </label>
           <template v-if="authMode === 'register'">
             <input v-model="authForm.email" placeholder="邮箱" />
             <input v-model="authForm.phone" placeholder="手机号" />
@@ -195,11 +199,13 @@ const authForm = ref({
 });
 const authMessage = ref("");
 const authMessageType = ref("");
+const showPassword = ref(false);
 
 const openAuth = (mode) => {
   authMode.value = mode;
   authMessage.value = "";
   authMessageType.value = "";
+  showPassword.value = false;
   authForm.value = {
     username: "",
     password: "",
@@ -214,6 +220,7 @@ const switchMode = (mode) => {
   authMode.value = mode;
   authMessage.value = "";
   authMessageType.value = "";
+  showPassword.value = false;
 };
 
 const closeAuth = () => {

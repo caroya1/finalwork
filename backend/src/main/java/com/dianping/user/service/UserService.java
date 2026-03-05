@@ -49,6 +49,22 @@ public class UserService {
         return userMapper.selectOne(new LambdaQueryWrapper<User>().eq(User::getUsername, username));
     }
 
+    public User findByLogin(String identity) {
+        if (identity == null) {
+            return null;
+        }
+        String value = identity.trim();
+        if (value.isEmpty()) {
+            return null;
+        }
+        return userMapper.selectOne(new LambdaQueryWrapper<User>()
+                .eq(User::getUsername, value)
+                .or()
+                .eq(User::getEmail, value)
+                .or()
+                .eq(User::getPhone, value));
+    }
+
     public User findById(Long userId) {
         return userMapper.selectById(userId);
     }
