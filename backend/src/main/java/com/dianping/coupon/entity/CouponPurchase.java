@@ -20,6 +20,10 @@ public class CouponPurchase {
 
     private String status;
 
+    private String refundReason;
+
+    private LocalDateTime refundedAt;
+
     private LocalDateTime createdAt;
 
     public void touchForCreate() {
@@ -64,6 +68,22 @@ public class CouponPurchase {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getRefundReason() {
+        return refundReason;
+    }
+
+    public void setRefundReason(String refundReason) {
+        this.refundReason = refundReason;
+    }
+
+    public LocalDateTime getRefundedAt() {
+        return refundedAt;
+    }
+
+    public void setRefundedAt(LocalDateTime refundedAt) {
+        this.refundedAt = refundedAt;
     }
 
     public LocalDateTime getCreatedAt() {

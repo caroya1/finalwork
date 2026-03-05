@@ -281,7 +281,11 @@ const submitAuth = async () => {
       localStorage.setItem("dp_refresh_token", loginResp.data.refreshToken);
     }
     localStorage.setItem("dp_user_id", String(loginResp.data.userId));
-    localStorage.setItem("dp_username", authForm.value.username);
+    if (loginResp.data.username) {
+      localStorage.setItem("dp_username", loginResp.data.username);
+    } else {
+      localStorage.setItem("dp_username", authForm.value.username);
+    }
     localStorage.setItem("dp_role", "user");
     if (loginResp.data.balance != null) {
       localStorage.setItem("dp_balance", String(loginResp.data.balance));

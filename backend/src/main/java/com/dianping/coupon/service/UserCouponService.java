@@ -50,6 +50,7 @@ public class UserCouponService {
                         coupon.getDiscountAmount(),
                         coupon.getPrice(),
                         purchase.getStatus(),
+                        purchase.getRefundReason(),
                         purchase.getCreatedAt()
                 );
             }, appTaskExecutor));

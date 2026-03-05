@@ -51,11 +51,39 @@
             <span class="tag">优惠 ¥{{ coupon.discountAmount }}</span>
             <span class="tag">购入 ¥{{ coupon.price || 0 }}</span>
             <span class="tag">{{ coupon.status }}</span>
+            <span v-if="coupon.refundReason" class="tag">退款原因：{{ coupon.refundReason }}</span>
           </div>
         </div>
-        <RouterLink class="ghost-btn" :to="`/shops/${coupon.shopId}`">去店铺</RouterLink>
+        <div class="coupon-actions">
+          <RouterLink class="ghost-btn" :to="`/shops/${coupon.shopId}`">去店铺</RouterLink>
+          <button class="ghost-btn" :disabled="coupon.status === 'refunded'" @click="openRefund(coupon)">
+            {{ coupon.status === 'refunded' ? '已退款' : '退款' }}
+          </button>
+        </div>
       </div>
     </section>
+
+    <div v-if="refundOpen" class="auth-overlay" @click.self="closeRefund">
+      <div class="auth-card refund-card">
+        <div class="confirm-header">
+          <h3>申请退款</h3>
+          <button class="auth-close" @click="closeRefund">×</button>
+        </div>
+        <p class="confirm-title">{{ selectedPurchase?.title }}</p>
+        <div class="confirm-meta">
+          <span class="tag">购入 ¥{{ selectedPurchase?.price || 0 }}</span>
+        </div>
+        <select v-model="refundReason" class="form-select">
+          <option value="" disabled>请选择退款原因</option>
+          <option v-for="reason in refundReasons" :key="reason" :value="reason">{{ reason }}</option>
+        </select>
+        <div class="confirm-actions">
+          <button class="ghost-btn" @click="closeRefund">取消</button>
+          <button class="cta" @click="submitRefund" :disabled="!refundReason">确认退款</button>
+        </div>
+        <div v-if="refundMessage" :class="['rec-message', refundMessageType]">{{ refundMessage }}</div>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -64,6 +92,7 @@ import { ref, onMounted, computed } from "vue";
 import { useRouter } from "vue-router";
 import { RouterLink } from "vue-router";
 import { rechargeBalance } from "../api/user";
+import { refundCoupon } from "../api/shop";
 import client from "../api/client";
 
 const profile = ref(null);
@@ -73,6 +102,18 @@ const rechargeAmount = ref(50);
 const rechargeMessage = ref("");
 const loginMessage = ref("");
 const router = useRouter();
+const refundOpen = ref(false);
+const refundReason = ref("");
+const refundMessage = ref("");
+const refundMessageType = ref("");
+const selectedPurchase = ref(null);
+const refundReasons = [
+  "买错了",
+  "不想要了",
+  "活动不符合预期",
+  "价格不合适",
+  "其他"
+];
 
 const balanceDisplay = computed(() => {
   if (!profile.value || profile.value.balance == null) return "0.00";
@@ -126,6 +167,50 @@ const doRecharge = async () => {
   } else {
     rechargeMessage.value = res.message || "充值失败";
   }
+};
+
+const openRefund = (coupon) => {
+  refundMessage.value = "";
+  refundMessageType.value = "";
+  if (!requireLogin()) return;
+  selectedPurchase.value = coupon;
+  refundReason.value = "";
+  refundOpen.value = true;
+};
+
+const closeRefund = () => {
+  refundOpen.value = false;
+  selectedPurchase.value = null;
+  refundReason.value = "";
+};
+
+const submitRefund = async () => {
+  refundMessage.value = "";
+  refundMessageType.value = "";
+  if (!requireLogin()) return;
+  if (!selectedPurchase.value) {
+    refundMessage.value = "请选择需要退款的优惠券";
+    refundMessageType.value = "error";
+    return;
+  }
+  if (!refundReason.value) {
+    refundMessage.value = "请选择退款原因";
+    refundMessageType.value = "error";
+    return;
+  }
+  const userId = localStorage.getItem("dp_user_id");
+  const res = await refundCoupon(selectedPurchase.value.purchaseId, {
+    userId: Number(userId),
+    reason: refundReason.value
+  });
+  if (res.success) {
+    refundMessage.value = "已退款";
+    refundMessageType.value = "success";
+    await loadProfile();
+    return;
+  }
+  refundMessage.value = res.message || "退款失败";
+  refundMessageType.value = "error";
 };
 
 onMounted(loadProfile);
@@ -200,6 +285,15 @@ onMounted(loadProfile);
   border-radius: 14px;
   margin-bottom: 12px;
   background: #fff;
+}
+.coupon-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.refund-card {
+  max-width: 460px;
 }
 .coupon-title {
   font-weight: 600;

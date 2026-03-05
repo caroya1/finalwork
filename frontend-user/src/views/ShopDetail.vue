@@ -88,11 +88,15 @@
               <span v-if="coupon.type === 'seckill'" class="tag">剩余 {{ coupon.remainingStock || 0 }}</span>
             </div>
           </div>
-          <button class="cta small-cta" @click="openCouponConfirm(coupon)">
-            {{ coupon.type === 'seckill' ? '秒杀' : '购买' }}
-          </button>
+          <div class="coupon-action">
+            <button class="cta small-cta" :disabled="isCouponOwned(coupon.id)" @click="openCouponConfirm(coupon)">
+              {{ isCouponOwned(coupon.id) ? '已购买' : (coupon.type === 'seckill' ? '秒杀' : '购买') }}
+            </button>
+            <div v-if="couponHints[coupon.id]" :class="['rec-message', couponHints[coupon.id].type]">
+              {{ couponHints[coupon.id].text }}
+            </div>
+          </div>
         </div>
-        <div v-if="couponMessage" class="rec-message">{{ couponMessage }}</div>
       </div>
 
       <div v-if="couponConfirmOpen" class="auth-overlay" @click.self="closeCouponConfirm">
@@ -112,7 +116,7 @@
             <button class="ghost-btn" @click="closeCouponConfirm">取消</button>
           <button class="cta" @click="confirmBuyCoupon">确认购买</button>
           </div>
-          <div v-if="couponMessage" class="rec-message">{{ couponMessage }}</div>
+          <div v-if="couponMessage" :class="['rec-message', couponMessageType]">{{ couponMessage }}</div>
         </div>
       </div>
 
@@ -167,6 +171,9 @@ const dishForm = ref({ name: "", price: null, description: "" });
 const dishMsg = ref("");
 const ratingOptions = [5, 4.5, 4, 3.5, 3, 2.5, 2, 1.5, 1];
 const couponMessage = ref("");
+const couponMessageType = ref("");
+const ownedCouponIds = ref(new Set());
+const couponHints = ref({});
 const balanceModalOpen = ref(false);
 const couponConfirmOpen = ref(false);
 const selectedCoupon = ref(null);
@@ -188,7 +195,23 @@ const load = async () => {
   if (couponRes.success) {
     coupons.value = couponRes.data || [];
   }
+  await loadOwnedCoupons();
 };
+
+const loadOwnedCoupons = async () => {
+  const userId = localStorage.getItem("dp_user_id");
+  if (!userId) {
+    ownedCouponIds.value = new Set();
+    return;
+  }
+  const response = await getProfile(userId);
+  if (response.success && response.data && Array.isArray(response.data.coupons)) {
+    const paid = response.data.coupons.filter((c) => c && c.status !== "refunded");
+    ownedCouponIds.value = new Set(paid.map((c) => c.couponId));
+  }
+};
+
+const isCouponOwned = (couponId) => ownedCouponIds.value.has(couponId);
 
 const submitRating = async () => {
   rateMsg.value = "";
@@ -239,9 +262,14 @@ const submitDish = async () => {
 
 const openCouponConfirm = (coupon) => {
   couponMessage.value = "";
+  couponMessageType.value = "";
   const userId = localStorage.getItem("dp_user_id");
   if (!userId) {
-    couponMessage.value = "请先登录";
+    couponHints.value[coupon.id] = { text: "请先登录", type: "error" };
+    return;
+  }
+  if (isCouponOwned(coupon.id)) {
+    couponHints.value[coupon.id] = { text: "已购买", type: "success" };
     return;
   }
   selectedCoupon.value = coupon;
@@ -256,18 +284,24 @@ const closeCouponConfirm = () => {
 
 const confirmBuyCoupon = async () => {
   couponMessage.value = "";
+  couponMessageType.value = "";
   const userId = localStorage.getItem("dp_user_id");
   if (!userId) {
     couponMessage.value = "请先登录";
+    couponMessageType.value = "error";
     return;
   }
   if (!selectedCoupon.value) {
     couponMessage.value = "请选择优惠券";
+    couponMessageType.value = "error";
     return;
   }
   const res = await purchaseCoupon(selectedCoupon.value.id, Number(userId));
   if (res.success) {
+    ownedCouponIds.value.add(selectedCoupon.value.id);
+    couponHints.value[selectedCoupon.value.id] = { text: "已购买", type: "success" };
     couponMessage.value = "已购买";
+    couponMessageType.value = "success";
     couponConfirmOpen.value = false;
     await loadUserBalance();
     await load();
@@ -278,15 +312,19 @@ const confirmBuyCoupon = async () => {
     balanceModalOpen.value = true;
     return;
   }
-  couponMessage.value = "";
+  couponHints.value[selectedCoupon.value.id] = { text: message, type: "error" };
+  couponMessage.value = message;
+  couponMessageType.value = "error";
 };
 
 const loadUserBalance = async () => {
   const userId = localStorage.getItem("dp_user_id");
   if (!userId) return;
   const response = await getProfile(userId);
-  if (response.success && response.data && typeof response.data.balance === "number") {
-    userBalance.value = response.data.balance;
+  if (response.success && response.data) {
+    if (typeof response.data.balance === "number") {
+      userBalance.value = response.data.balance;
+    }
   }
 };
 
@@ -361,6 +399,12 @@ onMounted(async () => {
   border-radius: 14px;
   margin-bottom: 12px;
   background: #fff;
+}
+.coupon-action {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
 }
 .coupon-title {
   font-weight: 600;

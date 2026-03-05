@@ -3,6 +3,7 @@ package com.dianping.coupon.controller;
 import com.dianping.common.api.ApiResponse;
 import com.dianping.coupon.dto.CouponCreateRequest;
 import com.dianping.coupon.dto.CouponPurchaseRequest;
+import com.dianping.coupon.dto.CouponRefundRequest;
 import com.dianping.coupon.entity.Coupon;
 import com.dianping.coupon.entity.CouponPurchase;
 import com.dianping.coupon.service.CouponService;
@@ -38,5 +39,11 @@ public class CouponController {
     public ApiResponse<CouponPurchase> purchase(@PathVariable("id") Long id,
                                                 @Valid @RequestBody CouponPurchaseRequest request) {
         return ApiResponse.ok(couponService.purchase(id, request.getUserId()));
+    }
+
+    @PostMapping("/purchase/{id}/refund")
+    public ApiResponse<CouponPurchase> refund(@PathVariable("id") Long purchaseId,
+                                              @Valid @RequestBody CouponRefundRequest request) {
+        return ApiResponse.ok(couponService.refund(purchaseId, request.getUserId(), request.getReason()));
     }
 }

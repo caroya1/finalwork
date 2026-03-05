@@ -55,7 +55,7 @@ public class AuthService {
         String token = jwtService.generateAccessToken(user.getId(), user.getUsername());
         String refreshToken = jwtService.generateRefreshToken(user.getId(), user.getUsername());
         saveTokens(user, token, refreshToken);
-        return new LoginResponse(token, refreshToken, user.getId(), user.getCity(), user.getUserRole(), user.getBalance());
+        return new LoginResponse(token, refreshToken, user.getId(), user.getCity(), user.getUserRole(), user.getBalance(), user.getUsername());
     }
 
     public TokenPairResponse refreshToken(String refreshToken) {

@@ -13,11 +13,12 @@ public class UserCouponView {
     private BigDecimal discountAmount;
     private BigDecimal price;
     private String status;
+    private String refundReason;
     private LocalDateTime purchasedAt;
 
     public UserCouponView(Long purchaseId, Long couponId, Long shopId, String type, String title,
                           String description, BigDecimal discountAmount, BigDecimal price,
-                          String status, LocalDateTime purchasedAt) {
+                          String status, String refundReason, LocalDateTime purchasedAt) {
         this.purchaseId = purchaseId;
         this.couponId = couponId;
         this.shopId = shopId;
@@ -27,6 +28,7 @@ public class UserCouponView {
         this.discountAmount = discountAmount;
         this.price = price;
         this.status = status;
+        this.refundReason = refundReason;
         this.purchasedAt = purchasedAt;
     }
 
@@ -64,6 +66,10 @@ public class UserCouponView {
 
     public String getStatus() {
         return status;
+    }
+
+    public String getRefundReason() {
+        return refundReason;
     }
 
     public LocalDateTime getPurchasedAt() {

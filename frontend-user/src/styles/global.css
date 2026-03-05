@@ -1022,6 +1022,14 @@ a {
   margin-top: 4px;
 }
 
+.rec-message.success {
+  color: var(--success);
+}
+
+.rec-message.error {
+  color: var(--danger);
+}
+
 /* ========== 列表 ========== */
 .list {
   display: grid;

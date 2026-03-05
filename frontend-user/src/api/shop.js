@@ -24,5 +24,8 @@ export const listCoupons = (shopId) =>
 export const purchaseCoupon = (couponId, userId) =>
   client.post(`/api/coupons/${couponId}/purchase`, { userId }).then((res) => res.data);
 
+export const refundCoupon = (purchaseId, payload) =>
+  client.post(`/api/coupons/purchase/${purchaseId}/refund`, payload).then((res) => res.data);
+
 export const createCoupon = (payload) =>
   client.post("/api/coupons", payload).then((res) => res.data);

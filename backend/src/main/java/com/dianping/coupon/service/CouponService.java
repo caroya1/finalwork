@@ -158,6 +158,38 @@ public class CouponService {
         return purchase;
     }
 
+    @Transactional
+    public CouponPurchase refund(Long purchaseId, Long userId, String reason) {
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new BusinessException("refund reason is required");
+        }
+        CouponPurchase purchase = couponPurchaseMapper.selectById(purchaseId);
+        if (purchase == null || !userId.equals(purchase.getUserId())) {
+            throw new BusinessException("purchase not found");
+        }
+        if ("refunded".equals(purchase.getStatus())) {
+            return purchase;
+        }
+        Coupon coupon = couponMapper.selectById(purchase.getCouponId());
+        if (coupon == null) {
+            throw new BusinessException("coupon not found");
+        }
+        BigDecimal amount = purchase.getAmount() == null ? BigDecimal.ZERO : purchase.getAmount();
+        if (amount.compareTo(BigDecimal.ZERO) > 0) {
+            userService.recharge(userId, amount);
+        }
+        purchase.setStatus("refunded");
+        purchase.setRefundReason(reason.trim());
+        purchase.setRefundedAt(LocalDateTime.now());
+        couponPurchaseMapper.updateById(purchase);
+        if (TYPE_SECKILL.equals(coupon.getType())) {
+            coupon.setRemainingStock((coupon.getRemainingStock() == null ? 0 : coupon.getRemainingStock()) + 1);
+            coupon.touchForUpdate();
+            couponMapper.updateById(coupon);
+        }
+        return purchase;
+    }
+
     private CouponPurchase handleSeckillPurchase(Coupon coupon, Long userId) {
         LocalDateTime now = LocalDateTime.now();
         if (coupon.getStartTime() != null && now.isBefore(coupon.getStartTime())) {
