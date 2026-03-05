@@ -96,6 +96,32 @@ a {
   box-shadow: var(--shadow);
 }
 
+.search-mode {
+  display: inline-flex;
+  gap: 6px;
+  padding: 4px;
+  background: rgba(255, 106, 45, 0.08);
+  border-radius: 999px;
+}
+
+.mode-btn {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mode-btn.active {
+  background: #fff;
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
 .location {
   font-size: 0.85rem;
   color: var(--accent);

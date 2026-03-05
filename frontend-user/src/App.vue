@@ -16,10 +16,22 @@
         <input
           class="search-input"
           v-model="keyword"
-          placeholder="输入商户名、地点或菜品"
+          :placeholder="searchMode === 'recommend' ? '输入场景，例如：朋友聚餐、亲子游' : '输入商户名、地点或菜品'"
           @keyup.enter="emitSearch"
         />
-        <button class="search-btn" @click="emitSearch">搜索</button>
+        <div class="search-mode">
+          <button
+            :class="['mode-btn', searchMode === 'search' ? 'active' : '']"
+            @click="setSearchMode('search')"
+          >搜索</button>
+          <button
+            :class="['mode-btn', searchMode === 'recommend' ? 'active' : '']"
+            @click="setSearchMode('recommend')"
+          >智能推荐</button>
+        </div>
+        <button class="search-btn" @click="emitSearch">
+          {{ searchMode === 'recommend' ? '推荐' : '搜索' }}
+        </button>
       </div>
       <nav class="nav">
         <RouterLink to="/">发现</RouterLink>
@@ -29,6 +41,7 @@
         <button class="cta" @click="openAuth('register')">注册</button>
       </div>
       <div class="header-actions" v-else>
+        <button class="ghost-btn" @click="goCreatePost">发布帖子</button>
         <RouterLink class="user-info user-link" to="/profile">{{ currentUsername }}</RouterLink>
         <button class="ghost-btn" @click="doLogout">退出</button>
       </div>
@@ -105,6 +118,7 @@ import { register, updateCity } from "./api/user";
 
 const router = useRouter();
 const keyword = ref("");
+const searchMode = ref("search");
 
 /* ---------- 城市选项 ---------- */
 const cityOptions = [
@@ -139,7 +153,14 @@ onBeforeUnmount(() => {
 
 /* ---------- 搜索 ---------- */
 const emitSearch = () => {
-  window.dispatchEvent(new CustomEvent("dp-search", { detail: keyword.value }));
+  window.dispatchEvent(new CustomEvent("dp-search", {
+    detail: { keyword: keyword.value, mode: searchMode.value }
+  }));
+};
+
+const setSearchMode = (mode) => {
+  searchMode.value = mode;
+  emitSearch();
 };
 
 /* ---------- 登录/注册弹窗 ---------- */
@@ -181,6 +202,10 @@ const closeAuth = () => {
 
 const openLoginModal = () => {
   openAuth("login");
+};
+
+const goCreatePost = () => {
+  router.push("/posts/new");
 };
 
 const submitAuth = async () => {
@@ -313,6 +338,6 @@ const selectCity = async (city) => {
   }
 
   /* 触发重新搜索 */
-  window.dispatchEvent(new CustomEvent("dp-search", { detail: keyword.value }));
+  emitSearch();
 };
 </script>

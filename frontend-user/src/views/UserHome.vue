@@ -1,21 +1,6 @@
 <template>
   <section class="hero">
     <div class="hero-card">
-      <h2>智能推荐</h2>
-      <p>基于您的偏好与场景，为您推荐最合适的商户。</p>
-      <div class="form-grid">
-        <input v-model="form.scene" placeholder="输入场景，例如：带老人聚餐、朋友约火锅" />
-        <button class="cta" @click="loadRecommendations">获取推荐</button>
-      </div>
-      <div v-if="recMessage" class="rec-message">{{ recMessage }}</div>
-    </div>
-    <div class="hero-card">
-      <h2>发布帖子</h2>
-      <p>分享你的真实体验，记录城市里的美好瞬间。</p>
-      <button class="cta" @click="goCreatePost">去发布</button>
-      <div v-if="!isLoggedIn" class="hint">登录后可发布帖子</div>
-    </div>
-    <div class="hero-card">
       <h2>推荐结果</h2>
       <div class="list">
         <RouterLink v-for="shop in recommendations" :key="shop.id" class="list-item list-item-link" :to="`/shops/${shop.id}`">
@@ -27,9 +12,10 @@
           </div>
         </RouterLink>
         <div v-if="recommendations.length === 0" class="list-item">
-          暂无推荐，请输入场景后获取。
+          暂无推荐，请在搜索栏选择智能推荐后输入场景。
         </div>
       </div>
+      <div v-if="recMessage" class="rec-message">{{ recMessage }}</div>
     </div>
   </section>
 
@@ -84,13 +70,8 @@ import { listPosts } from "../api/post";
 
 const router = useRouter();
 
-const form = ref({
-  scene: ""
-});
-
 const recommendations = ref([]);
 const recMessage = ref("");
-const isLoggedIn = ref(false);
 
 const categories = ref([
   { icon: "🍜", label: "美食", desc: "今日爆款", query: "美食" },
@@ -102,7 +83,7 @@ const categories = ref([
 
 const feeds = ref([]);
 
-const loadRecommendations = async () => {
+const loadRecommendations = async (scene) => {
   recMessage.value = "";
   const userId = localStorage.getItem("dp_user_id");
   if (!userId) {
@@ -113,7 +94,7 @@ const loadRecommendations = async () => {
   const payload = {
     userId: Number(userId),
     city: city,
-    scene: form.value.scene || null
+    scene: scene || null
   };
   try {
     const response = await fetchRecommendations(payload);
@@ -160,13 +141,17 @@ const goCategory = (item) => {
 };
 
 const handleSearch = (event) => {
-  loadPosts(event.detail || "");
+  const detail = event.detail || {};
+  const keyword = typeof detail === "string" ? detail : detail.keyword;
+  const mode = typeof detail === "string" ? "search" : detail.mode || "search";
+  if (mode === "recommend") {
+    loadRecommendations(keyword || "");
+    return;
+  }
+  loadPosts(keyword || "");
 };
 
 onMounted(() => {
-  const token = localStorage.getItem("dp_token");
-  const refreshToken = localStorage.getItem("dp_refresh_token");
-  isLoggedIn.value = !!token && !!refreshToken;
   loadPosts("");
   window.addEventListener("dp-search", handleSearch);
 });
