@@ -9,7 +9,7 @@ import com.dianping.post.entity.PostComment;
 import com.dianping.post.mapper.PostCommentMapper;
 import com.dianping.post.mapper.PostMapper;
 import com.dianping.shop.entity.Shop;
-import com.dianping.shop.mapper.ShopMapper;
+import com.dianping.shop.service.ShopService;
 import com.dianping.user.service.UserFollowService;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -23,18 +23,18 @@ public class PostService {
     private final PostMapper postMapper;
     private final PostLikeService postLikeService;
     private final PostCommentMapper postCommentMapper;
-    private final ShopMapper shopMapper;
+    private final ShopService shopService;
     private final Executor appTaskExecutor;
     private final UserFollowService userFollowService;
 
     public PostService(PostMapper postMapper, PostLikeService postLikeService,
-                       PostCommentMapper postCommentMapper, ShopMapper shopMapper,
+                       PostCommentMapper postCommentMapper, ShopService shopService,
                        @Qualifier("appTaskExecutor") Executor appTaskExecutor,
                        UserFollowService userFollowService) {
         this.postMapper = postMapper;
         this.postLikeService = postLikeService;
         this.postCommentMapper = postCommentMapper;
-        this.shopMapper = shopMapper;
+        this.shopService = shopService;
         this.appTaskExecutor = appTaskExecutor;
         this.userFollowService = userFollowService;
     }
@@ -82,7 +82,7 @@ public class PostService {
             if (post.getShopId() == null) {
                 return null;
             }
-            return shopMapper.selectById(post.getShopId());
+            return shopService.getPlainById(post.getShopId());
         }, appTaskExecutor);
         CompletableFuture<List<PostComment>> commentsFuture = CompletableFuture.supplyAsync(() ->
                 postCommentMapper.selectList(new LambdaQueryWrapper<PostComment>()
@@ -102,7 +102,7 @@ public class PostService {
         }
         Shop shop = null;
         if (request.getShopId() != null) {
-            shop = shopMapper.selectById(request.getShopId());
+            shop = shopService.getPlainById(request.getShopId());
             if (shop == null) {
                 throw new BusinessException("shop not found");
             }

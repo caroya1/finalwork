@@ -48,6 +48,13 @@ public class ShopService {
         return shop;
     }
 
+    public Shop getPlainById(Long id) {
+        if (id == null) {
+            return null;
+        }
+        return shopMapper.selectById(id);
+    }
+
     public Shop create(Shop shop) {
         shop.touchForCreate();
         shopMapper.insert(shop);
