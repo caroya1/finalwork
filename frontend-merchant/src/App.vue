@@ -41,7 +41,7 @@
           >注册</button>
         </div>
         <div class="form-grid">
-          <input v-model="authForm.username" placeholder="用户名" />
+          <input v-model="authForm.username" placeholder="用户名 / 手机 / 邮箱" />
           <input v-model="authForm.password" type="password" placeholder="密码" />
           <template v-if="authMode === 'register'">
             <input v-model="authForm.email" placeholder="邮箱" />
@@ -170,7 +170,11 @@ const submitAuth = async () => {
       localStorage.setItem("dp_refresh_token", loginResp.data.refreshToken);
     }
     localStorage.setItem("dp_user_id", String(loginResp.data.userId));
-    localStorage.setItem("dp_username", authForm.value.username);
+    if (loginResp.data.username) {
+      localStorage.setItem("dp_username", loginResp.data.username);
+    } else {
+      localStorage.setItem("dp_username", authForm.value.username);
+    }
     localStorage.setItem("dp_role", "merchant");
 
     const userCity = loginResp.data.city || "上海";

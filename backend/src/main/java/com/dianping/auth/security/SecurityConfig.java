@@ -33,6 +33,7 @@ public class SecurityConfig {
                 .antMatchers(HttpMethod.POST, "/api/posts/*/like", "/api/posts/*/comments", "/api/shops/*/rate", "/api/shops/*/dishes").permitAll()
                 .antMatchers(HttpMethod.DELETE, "/api/posts/*/like").permitAll()
                 .antMatchers(HttpMethod.GET, "/api/coupons").permitAll()
+                .antMatchers(HttpMethod.POST, "/api/merchants").permitAll()
                 .anyRequest().authenticated();
 
         long accessTtlSeconds = accessExpireMinutes * 60;
