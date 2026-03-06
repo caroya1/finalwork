@@ -1,19 +1,20 @@
-package com.dianping.common.service;
+package com.dianping.coupon.service;
 
 import com.dianping.common.dto.UserCouponView;
-import com.dianping.coupon.service.UserCouponService;
+import com.dianping.common.port.CouponPort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
-public class CouponFacade {
+public class CouponPortImpl implements CouponPort {
     private final UserCouponService userCouponService;
 
-    public CouponFacade(UserCouponService userCouponService) {
+    public CouponPortImpl(UserCouponService userCouponService) {
         this.userCouponService = userCouponService;
     }
 
+    @Override
     public List<UserCouponView> listByUser(Long userId) {
         return userCouponService.listByUser(userId);
     }

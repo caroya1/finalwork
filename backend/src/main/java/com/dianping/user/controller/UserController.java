@@ -7,8 +7,8 @@ import com.dianping.user.dto.UpdateCityRequest;
 import com.dianping.user.dto.UserProfileResponse;
 import com.dianping.common.dto.PostSummary;
 import com.dianping.common.dto.UserCouponView;
-import com.dianping.common.service.PostFacade;
-import com.dianping.common.service.CouponFacade;
+import com.dianping.common.port.PostPort;
+import com.dianping.common.port.CouponPort;
 import com.dianping.user.entity.User;
 import com.dianping.user.service.UserService;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -26,16 +26,16 @@ import java.util.concurrent.Executor;
 @Validated
 public class UserController {
     private final UserService userService;
-    private final PostFacade postFacade;
-    private final CouponFacade couponFacade;
+    private final PostPort postPort;
+    private final CouponPort couponPort;
     private final Executor appTaskExecutor;
 
-    public UserController(UserService userService, PostFacade postFacade,
-                          CouponFacade couponFacade,
+    public UserController(UserService userService, PostPort postPort,
+                          CouponPort couponPort,
                           @Qualifier("appTaskExecutor") Executor appTaskExecutor) {
         this.userService = userService;
-        this.postFacade = postFacade;
-        this.couponFacade = couponFacade;
+        this.postPort = postPort;
+        this.couponPort = couponPort;
         this.appTaskExecutor = appTaskExecutor;
     }
 
@@ -68,9 +68,9 @@ public class UserController {
             return ApiResponse.fail("user not found");
         }
         CompletableFuture<List<PostSummary>> postsFuture = CompletableFuture.supplyAsync(
-                () -> postFacade.listSummariesByUser(id), appTaskExecutor);
+                () -> postPort.listSummariesByUser(id), appTaskExecutor);
         CompletableFuture<List<UserCouponView>> couponsFuture = CompletableFuture.supplyAsync(
-                () -> couponFacade.listByUser(id), appTaskExecutor);
+                () -> couponPort.listByUser(id), appTaskExecutor);
         List<PostSummary> posts = postsFuture.join();
         List<UserCouponView> coupons = couponsFuture.join();
         UserProfileResponse response = new UserProfileResponse(

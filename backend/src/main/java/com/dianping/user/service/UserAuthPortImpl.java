@@ -1,22 +1,24 @@
-package com.dianping.common.service;
+package com.dianping.user.service;
 
-import com.dianping.common.dto.UserSummary;
 import com.dianping.common.dto.UserAuthView;
-import com.dianping.user.service.UserService;
+import com.dianping.common.dto.UserSummary;
+import com.dianping.common.port.UserAuthPort;
+import com.dianping.user.entity.User;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
 @Service
-public class UserFacade {
+public class UserAuthPortImpl implements UserAuthPort {
     private final UserService userService;
 
-    public UserFacade(UserService userService) {
+    public UserAuthPortImpl(UserService userService) {
         this.userService = userService;
     }
 
+    @Override
     public UserAuthView findByLogin(String identity) {
-        com.dianping.user.entity.User user = userService.findByLogin(identity);
+        User user = userService.findByLogin(identity);
         if (user == null) {
             return null;
         }
@@ -30,15 +32,18 @@ public class UserFacade {
         );
     }
 
+    @Override
     public UserSummary getSummary(Long userId) {
         return userService.getSummary(userId);
     }
 
+    @Override
     public void deductBalance(Long userId, BigDecimal amount) {
         userService.deductBalance(userId, amount);
     }
 
-    public com.dianping.user.entity.User recharge(Long userId, BigDecimal amount) {
-        return userService.recharge(userId, amount);
+    @Override
+    public void recharge(Long userId, BigDecimal amount) {
+        userService.recharge(userId, amount);
     }
 }

@@ -1,7 +1,7 @@
 package com.dianping.user.service;
 
 import com.dianping.common.exception.BusinessException;
-import com.dianping.common.service.PasswordFacade;
+import com.dianping.common.port.PasswordPort;
 import com.dianping.common.dto.UserSummary;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dianping.user.entity.User;
@@ -15,11 +15,11 @@ import java.util.List;
 @Service
 public class UserService {
     private final UserMapper userMapper;
-    private final PasswordFacade passwordFacade;
+    private final PasswordPort passwordPort;
 
-    public UserService(UserMapper userMapper, PasswordFacade passwordFacade) {
+    public UserService(UserMapper userMapper, PasswordPort passwordPort) {
         this.userMapper = userMapper;
-        this.passwordFacade = passwordFacade;
+        this.passwordPort = passwordPort;
     }
 
     public User create(UserCreateRequest request) {
@@ -36,7 +36,7 @@ public class UserService {
         user.setCity(request.getCity());
         user.setUserRole(request.getRole() == null || request.getRole().trim().isEmpty() ? "user" : request.getRole());
         user.setBalance(BigDecimal.ZERO);
-        user.setPasswordHash(passwordFacade.encode(request.getPassword()));
+        user.setPasswordHash(passwordPort.encode(request.getPassword()));
         user.touchForCreate();
         userMapper.insert(user);
         return user;

@@ -10,8 +10,8 @@ import com.dianping.post.mapper.PostCommentMapper;
 import com.dianping.post.mapper.PostMapper;
 import com.dianping.common.dto.ShopSummary;
 import com.dianping.common.dto.PostSummary;
-import com.dianping.common.service.ShopFacade;
-import com.dianping.common.service.UserFollowFacade;
+import com.dianping.common.port.ShopPort;
+import com.dianping.common.port.UserFollowPort;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
@@ -24,20 +24,20 @@ public class PostService {
     private final PostMapper postMapper;
     private final PostLikeService postLikeService;
     private final PostCommentMapper postCommentMapper;
-    private final ShopFacade shopFacade;
+    private final ShopPort shopPort;
     private final Executor appTaskExecutor;
-    private final UserFollowFacade userFollowFacade;
+    private final UserFollowPort userFollowPort;
 
     public PostService(PostMapper postMapper, PostLikeService postLikeService,
-                       PostCommentMapper postCommentMapper, ShopFacade shopFacade,
+                       PostCommentMapper postCommentMapper, ShopPort shopPort,
                        @Qualifier("appTaskExecutor") Executor appTaskExecutor,
-                       UserFollowFacade userFollowFacade) {
+                       UserFollowPort userFollowPort) {
         this.postMapper = postMapper;
         this.postLikeService = postLikeService;
         this.postCommentMapper = postCommentMapper;
-        this.shopFacade = shopFacade;
+        this.shopPort = shopPort;
         this.appTaskExecutor = appTaskExecutor;
-        this.userFollowFacade = userFollowFacade;
+        this.userFollowPort = userFollowPort;
     }
 
     public List<Post> list(String city, String keyword, Long shopId) {
@@ -117,13 +117,13 @@ public class PostService {
             if (userId == null || authorId == null) {
                 return false;
             }
-            return userFollowFacade.isFollowing(userId, authorId);
+            return userFollowPort.isFollowing(userId, authorId);
         }, appTaskExecutor);
         CompletableFuture<ShopSummary> shopFuture = CompletableFuture.supplyAsync(() -> {
             if (post.getShopId() == null) {
                 return null;
             }
-            return shopFacade.getSummary(post.getShopId());
+            return shopPort.getSummary(post.getShopId());
         }, appTaskExecutor);
         CompletableFuture<List<PostComment>> commentsFuture = CompletableFuture.supplyAsync(() ->
                 postCommentMapper.selectList(new LambdaQueryWrapper<PostComment>()
@@ -142,7 +142,7 @@ public class PostService {
             throw new BusinessException("userId is required");
         }
         if (request.getShopId() != null) {
-            ShopSummary shop = shopFacade.getSummary(request.getShopId());
+            ShopSummary shop = shopPort.getSummary(request.getShopId());
             if (shop == null) {
                 throw new BusinessException("shop not found");
             }
@@ -177,7 +177,7 @@ public class PostService {
             return city.trim();
         }
         if (shopId != null) {
-            ShopSummary shop = shopFacade.getSummary(shopId);
+            ShopSummary shop = shopPort.getSummary(shopId);
             if (shop != null && shop.getCity() != null && !shop.getCity().trim().isEmpty()) {
                 return shop.getCity().trim();
             }

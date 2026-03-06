@@ -8,7 +8,7 @@ import com.dianping.coupon.entity.Coupon;
 import com.dianping.coupon.entity.CouponPurchase;
 import com.dianping.coupon.mapper.CouponMapper;
 import com.dianping.coupon.mapper.CouponPurchaseMapper;
-import com.dianping.common.service.UserFacade;
+import com.dianping.common.port.UserAuthPort;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -56,7 +56,7 @@ public class CouponService {
 
     private final CouponMapper couponMapper;
     private final CouponPurchaseMapper couponPurchaseMapper;
-    private final UserFacade userFacade;
+    private final UserAuthPort userAuthPort;
     private final RedisTemplate<String, Object> redisTemplate;
     private final StringRedisTemplate stringRedisTemplate;
     private final RabbitTemplate rabbitTemplate;
@@ -65,7 +65,7 @@ public class CouponService {
 
     public CouponService(CouponMapper couponMapper,
                          CouponPurchaseMapper couponPurchaseMapper,
-                         UserFacade userFacade,
+                         UserAuthPort userAuthPort,
                          RedisTemplate<String, Object> redisTemplate,
                          StringRedisTemplate stringRedisTemplate,
                          RabbitTemplate rabbitTemplate,
@@ -73,7 +73,7 @@ public class CouponService {
                          @Value("${app.seckill.queue-name:dp.seckill.coupon.queue}") String seckillQueueName) {
         this.couponMapper = couponMapper;
         this.couponPurchaseMapper = couponPurchaseMapper;
-        this.userFacade = userFacade;
+        this.userAuthPort = userAuthPort;
         this.redisTemplate = redisTemplate;
         this.stringRedisTemplate = stringRedisTemplate;
         this.rabbitTemplate = rabbitTemplate;
@@ -145,7 +145,7 @@ public class CouponService {
 
         BigDecimal price = coupon.getPrice() == null ? BigDecimal.ZERO : coupon.getPrice();
         if (price.compareTo(BigDecimal.ZERO) > 0) {
-            userFacade.deductBalance(userId, price);
+            userAuthPort.deductBalance(userId, price);
         }
 
         CouponPurchase purchase = new CouponPurchase();
@@ -176,7 +176,7 @@ public class CouponService {
         }
         BigDecimal amount = purchase.getAmount() == null ? BigDecimal.ZERO : purchase.getAmount();
         if (amount.compareTo(BigDecimal.ZERO) > 0) {
-            userFacade.recharge(userId, amount);
+            userAuthPort.recharge(userId, amount);
         }
         purchase.setStatus("refunded");
         purchase.setRefundReason(reason.trim());
@@ -252,7 +252,7 @@ public class CouponService {
             }
             BigDecimal price = coupon.getPrice() == null ? BigDecimal.ZERO : coupon.getPrice();
             if (price.compareTo(BigDecimal.ZERO) > 0) {
-                userFacade.deductBalance(userId, price);
+                userAuthPort.deductBalance(userId, price);
             }
             coupon.setRemainingStock(coupon.getRemainingStock() - 1);
             coupon.touchForUpdate();

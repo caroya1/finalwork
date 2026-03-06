@@ -4,7 +4,7 @@ import com.dianping.recommendation.dto.RecommendationRequest;
 import com.dianping.recommendation.entity.RecommendationLog;
 import com.dianping.recommendation.mapper.RecommendationLogMapper;
 import com.dianping.common.dto.ShopSummary;
-import com.dianping.common.service.ShopFacade;
+import com.dianping.common.port.ShopPort;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -21,18 +21,18 @@ import java.util.concurrent.TimeUnit;
 public class RecommendationService {
     private static final String CACHE_PREFIX = "dp:rec:";
 
-    private final ShopFacade shopFacade;
+    private final ShopPort shopPort;
     private final RecommendationLogMapper logMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final long cacheTtlSeconds;
     private final Executor appTaskExecutor;
 
-    public RecommendationService(ShopFacade shopFacade,
+    public RecommendationService(ShopPort shopPort,
                                  RecommendationLogMapper logMapper,
                                  RedisTemplate<String, Object> redisTemplate,
                                  @Value("${app.recommendation.cache-ttl-seconds:300}") long cacheTtlSeconds,
                                  @Qualifier("appTaskExecutor") Executor appTaskExecutor) {
-        this.shopFacade = shopFacade;
+        this.shopPort = shopPort;
         this.logMapper = logMapper;
         this.redisTemplate = redisTemplate;
         this.cacheTtlSeconds = cacheTtlSeconds;
@@ -46,7 +46,7 @@ public class RecommendationService {
             return castList(cached);
         }
 
-        List<ShopSummary> shops = shopFacade.listSummaries(request.getCity(), null);
+        List<ShopSummary> shops = shopPort.listSummaries(request.getCity(), null);
         Collections.shuffle(shops);
         List<ShopSummary> result = shops.size() > 10 ? shops.subList(0, 10) : shops;
 

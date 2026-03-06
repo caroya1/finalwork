@@ -10,7 +10,7 @@ import com.dianping.shop.service.ShopService;
 import com.dianping.shop.service.ShopRatingService;
 import com.dianping.shop.service.ShopDishService;
 import com.dianping.common.dto.PostSummary;
-import com.dianping.common.service.PostFacade;
+import com.dianping.common.port.PostPort;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -28,16 +28,16 @@ public class ShopController {
     private final ShopService shopService;
     private final ShopRatingService shopRatingService;
     private final ShopDishService shopDishService;
-    private final PostFacade postFacade;
+    private final PostPort postPort;
     private final Executor appTaskExecutor;
 
     public ShopController(ShopService shopService, ShopRatingService shopRatingService,
-                          ShopDishService shopDishService, PostFacade postFacade,
+                          ShopDishService shopDishService, PostPort postPort,
                           @Qualifier("appTaskExecutor") Executor appTaskExecutor) {
         this.shopService = shopService;
         this.shopRatingService = shopRatingService;
         this.shopDishService = shopDishService;
-        this.postFacade = postFacade;
+        this.postPort = postPort;
         this.appTaskExecutor = appTaskExecutor;
     }
 
@@ -65,7 +65,7 @@ public class ShopController {
         CompletableFuture<List<ShopDish>> dishesFuture = CompletableFuture.supplyAsync(
                 () -> shopDishService.listByShopId(id), appTaskExecutor);
         CompletableFuture<List<PostSummary>> postsFuture = CompletableFuture.supplyAsync(
-                () -> postFacade.listSummaries(null, null, id), appTaskExecutor);
+                () -> postPort.listSummaries(null, null, id), appTaskExecutor);
         List<ShopDish> dishes = dishesFuture.join();
         List<PostSummary> posts = postsFuture.join();
         return ApiResponse.ok(new ShopDetailResponse(shop, dishes, posts));

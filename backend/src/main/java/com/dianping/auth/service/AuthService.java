@@ -4,7 +4,7 @@ import com.dianping.auth.dto.LoginRequest;
 import com.dianping.auth.dto.LoginResponse;
 import com.dianping.auth.dto.TokenPairResponse;
 import com.dianping.common.exception.BusinessException;
-import com.dianping.common.service.UserFacade;
+import com.dianping.common.port.UserAuthPort;
 import com.dianping.common.dto.UserAuthView;
 import com.dianping.common.dto.UserSummary;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,20 +22,20 @@ public class AuthService {
     private static final String USER_ACCESS_PREFIX = "dp:token:user:access:";
     private static final String USER_REFRESH_PREFIX = "dp:token:user:refresh:";
 
-    private final UserFacade userFacade;
+    private final UserAuthPort userAuthPort;
     private final PasswordService passwordService;
     private final JwtService jwtService;
     private final RedisTemplate<String, Object> redisTemplate;
     private final long accessTtlSeconds;
     private final long refreshTtlSeconds;
 
-    public AuthService(UserFacade userFacade,
+    public AuthService(UserAuthPort userAuthPort,
                        PasswordService passwordService,
                        JwtService jwtService,
                        RedisTemplate<String, Object> redisTemplate,
                        @Value("${app.jwt.expire-minutes:120}") long accessExpireMinutes,
                        @Value("${app.jwt.refresh-expire-days:7}") long refreshExpireDays) {
-        this.userFacade = userFacade;
+        this.userAuthPort = userAuthPort;
         this.passwordService = passwordService;
         this.jwtService = jwtService;
         this.redisTemplate = redisTemplate;
@@ -44,7 +44,7 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        UserAuthView user = userFacade.findByLogin(request.getUsername());
+        UserAuthView user = userAuthPort.findByLogin(request.getUsername());
         if (user == null) {
             throw new BusinessException("invalid username or password");
         }
@@ -89,7 +89,7 @@ public class AuthService {
             }
         }
         if (username == null || username.trim().isEmpty()) {
-            UserSummary user = userFacade.getSummary(userId);
+            UserSummary user = userAuthPort.getSummary(userId);
             if (user == null) {
                 throw new BusinessException("user not found");
             }
@@ -103,7 +103,7 @@ public class AuthService {
             redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + newRefresh, cached, refreshTtlSeconds, TimeUnit.SECONDS);
             storeTokenIndex(userId, newAccess, newRefresh);
         } else {
-            UserSummary user = userFacade.getSummary(userId);
+            UserSummary user = userAuthPort.getSummary(userId);
             if (user == null) {
                 throw new BusinessException("user not found");
             }
