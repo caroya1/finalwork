@@ -1,7 +1,7 @@
 package com.dianping.coupon.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.dianping.coupon.dto.UserCouponView;
+import com.dianping.common.dto.UserCouponView;
 import com.dianping.coupon.entity.Coupon;
 import com.dianping.coupon.entity.CouponPurchase;
 import com.dianping.coupon.mapper.CouponMapper;

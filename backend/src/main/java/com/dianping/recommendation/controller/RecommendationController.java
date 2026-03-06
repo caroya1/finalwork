@@ -3,7 +3,7 @@ package com.dianping.recommendation.controller;
 import com.dianping.common.api.ApiResponse;
 import com.dianping.recommendation.dto.RecommendationRequest;
 import com.dianping.recommendation.service.RecommendationService;
-import com.dianping.shop.entity.Shop;
+import com.dianping.common.dto.ShopSummary;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,7 +21,7 @@ public class RecommendationController {
     }
 
     @PostMapping
-    public ApiResponse<List<Shop>> recommend(@Valid @RequestBody RecommendationRequest request) {
+    public ApiResponse<List<ShopSummary>> recommend(@Valid @RequestBody RecommendationRequest request) {
         return ApiResponse.ok(recommendationService.recommend(request));
     }
 }

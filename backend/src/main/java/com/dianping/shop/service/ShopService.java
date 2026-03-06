@@ -3,6 +3,7 @@ package com.dianping.shop.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dianping.shop.entity.Shop;
 import com.dianping.shop.mapper.ShopMapper;
+import com.dianping.common.dto.ShopSummary;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -53,6 +54,37 @@ public class ShopService {
             return null;
         }
         return shopMapper.selectById(id);
+    }
+
+    public ShopSummary getSummary(Long id) {
+        Shop shop = getById(id);
+        if (shop == null) {
+            return null;
+        }
+        return new ShopSummary(
+                shop.getId(),
+                shop.getName(),
+                shop.getCategory(),
+                shop.getCity(),
+                shop.getRating(),
+                shop.getAddress()
+        );
+    }
+
+    public List<ShopSummary> listSummaries(String city, String category) {
+        List<Shop> shops = list(city, category);
+        List<ShopSummary> result = new ArrayList<>();
+        for (Shop shop : shops) {
+            result.add(new ShopSummary(
+                    shop.getId(),
+                    shop.getName(),
+                    shop.getCategory(),
+                    shop.getCity(),
+                    shop.getRating(),
+                    shop.getAddress()
+            ));
+        }
+        return result;
     }
 
     public Shop create(Shop shop) {

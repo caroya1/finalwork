@@ -9,8 +9,8 @@ import com.dianping.shop.entity.ShopDish;
 import com.dianping.shop.service.ShopService;
 import com.dianping.shop.service.ShopRatingService;
 import com.dianping.shop.service.ShopDishService;
-import com.dianping.post.entity.Post;
-import com.dianping.post.service.PostService;
+import com.dianping.common.dto.PostSummary;
+import com.dianping.common.service.PostFacade;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -28,16 +28,16 @@ public class ShopController {
     private final ShopService shopService;
     private final ShopRatingService shopRatingService;
     private final ShopDishService shopDishService;
-    private final PostService postService;
+    private final PostFacade postFacade;
     private final Executor appTaskExecutor;
 
     public ShopController(ShopService shopService, ShopRatingService shopRatingService,
-                          ShopDishService shopDishService, PostService postService,
+                          ShopDishService shopDishService, PostFacade postFacade,
                           @Qualifier("appTaskExecutor") Executor appTaskExecutor) {
         this.shopService = shopService;
         this.shopRatingService = shopRatingService;
         this.shopDishService = shopDishService;
-        this.postService = postService;
+        this.postFacade = postFacade;
         this.appTaskExecutor = appTaskExecutor;
     }
 
@@ -64,10 +64,10 @@ public class ShopController {
         }
         CompletableFuture<List<ShopDish>> dishesFuture = CompletableFuture.supplyAsync(
                 () -> shopDishService.listByShopId(id), appTaskExecutor);
-        CompletableFuture<List<Post>> postsFuture = CompletableFuture.supplyAsync(
-                () -> postService.list(null, null, id), appTaskExecutor);
+        CompletableFuture<List<PostSummary>> postsFuture = CompletableFuture.supplyAsync(
+                () -> postFacade.listSummaries(null, null, id), appTaskExecutor);
         List<ShopDish> dishes = dishesFuture.join();
-        List<Post> posts = postsFuture.join();
+        List<PostSummary> posts = postsFuture.join();
         return ApiResponse.ok(new ShopDetailResponse(shop, dishes, posts));
     }
 

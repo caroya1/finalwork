@@ -4,8 +4,9 @@ import com.dianping.auth.dto.LoginRequest;
 import com.dianping.auth.dto.LoginResponse;
 import com.dianping.auth.dto.TokenPairResponse;
 import com.dianping.common.exception.BusinessException;
-import com.dianping.user.entity.User;
-import com.dianping.user.service.UserService;
+import com.dianping.common.service.UserFacade;
+import com.dianping.common.dto.UserAuthView;
+import com.dianping.common.dto.UserSummary;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -21,20 +22,20 @@ public class AuthService {
     private static final String USER_ACCESS_PREFIX = "dp:token:user:access:";
     private static final String USER_REFRESH_PREFIX = "dp:token:user:refresh:";
 
-    private final UserService userService;
+    private final UserFacade userFacade;
     private final PasswordService passwordService;
     private final JwtService jwtService;
     private final RedisTemplate<String, Object> redisTemplate;
     private final long accessTtlSeconds;
     private final long refreshTtlSeconds;
 
-    public AuthService(UserService userService,
+    public AuthService(UserFacade userFacade,
                        PasswordService passwordService,
                        JwtService jwtService,
                        RedisTemplate<String, Object> redisTemplate,
                        @Value("${app.jwt.expire-minutes:120}") long accessExpireMinutes,
                        @Value("${app.jwt.refresh-expire-days:7}") long refreshExpireDays) {
-        this.userService = userService;
+        this.userFacade = userFacade;
         this.passwordService = passwordService;
         this.jwtService = jwtService;
         this.redisTemplate = redisTemplate;
@@ -43,7 +44,7 @@ public class AuthService {
     }
 
     public LoginResponse login(LoginRequest request) {
-        User user = userService.findByLogin(request.getUsername());
+        UserAuthView user = userFacade.findByLogin(request.getUsername());
         if (user == null) {
             throw new BusinessException("invalid username or password");
         }
@@ -54,8 +55,9 @@ public class AuthService {
         revokeExistingTokens(user.getId());
         String token = jwtService.generateAccessToken(user.getId(), user.getUsername());
         String refreshToken = jwtService.generateRefreshToken(user.getId(), user.getUsername());
-        saveTokens(user, token, refreshToken);
-        return new LoginResponse(token, refreshToken, user.getId(), user.getCity(), user.getUserRole(), user.getBalance(), user.getUsername());
+        UserSummary summary = new UserSummary(user.getId(), user.getUsername(), user.getCity(), user.getRole(), user.getBalance());
+        saveTokens(summary, token, refreshToken);
+        return new LoginResponse(token, refreshToken, summary.getId(), summary.getCity(), summary.getRole(), summary.getBalance(), summary.getUsername());
     }
 
     public TokenPairResponse refreshToken(String refreshToken) {
@@ -87,7 +89,7 @@ public class AuthService {
             }
         }
         if (username == null || username.trim().isEmpty()) {
-            User user = userService.findById(userId);
+            UserSummary user = userFacade.getSummary(userId);
             if (user == null) {
                 throw new BusinessException("user not found");
             }
@@ -101,7 +103,7 @@ public class AuthService {
             redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + newRefresh, cached, refreshTtlSeconds, TimeUnit.SECONDS);
             storeTokenIndex(userId, newAccess, newRefresh);
         } else {
-            User user = userService.findById(userId);
+            UserSummary user = userFacade.getSummary(userId);
             if (user == null) {
                 throw new BusinessException("user not found");
             }
@@ -139,11 +141,11 @@ public class AuthService {
         }
     }
 
-    private void saveTokens(User user, String accessToken, String refreshToken) {
+    private void saveTokens(UserSummary user, String accessToken, String refreshToken) {
         Map<String, String> payload = new HashMap<>(4);
         payload.put("userId", String.valueOf(user.getId()));
         payload.put("username", user.getUsername());
-        payload.put("role", user.getUserRole());
+        payload.put("role", user.getRole());
         payload.put("city", user.getCity());
         redisTemplate.opsForValue().set(ACCESS_TOKEN_PREFIX + accessToken, payload, accessTtlSeconds, TimeUnit.SECONDS);
         redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + refreshToken, payload, refreshTtlSeconds, TimeUnit.SECONDS);

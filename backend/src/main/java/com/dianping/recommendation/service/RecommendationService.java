@@ -3,8 +3,8 @@ package com.dianping.recommendation.service;
 import com.dianping.recommendation.dto.RecommendationRequest;
 import com.dianping.recommendation.entity.RecommendationLog;
 import com.dianping.recommendation.mapper.RecommendationLogMapper;
-import com.dianping.shop.entity.Shop;
-import com.dianping.shop.service.ShopService;
+import com.dianping.common.dto.ShopSummary;
+import com.dianping.common.service.ShopFacade;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -21,41 +21,41 @@ import java.util.concurrent.TimeUnit;
 public class RecommendationService {
     private static final String CACHE_PREFIX = "dp:rec:";
 
-    private final ShopService shopService;
+    private final ShopFacade shopFacade;
     private final RecommendationLogMapper logMapper;
     private final RedisTemplate<String, Object> redisTemplate;
     private final long cacheTtlSeconds;
     private final Executor appTaskExecutor;
 
-    public RecommendationService(ShopService shopService,
+    public RecommendationService(ShopFacade shopFacade,
                                  RecommendationLogMapper logMapper,
                                  RedisTemplate<String, Object> redisTemplate,
                                  @Value("${app.recommendation.cache-ttl-seconds:300}") long cacheTtlSeconds,
                                  @Qualifier("appTaskExecutor") Executor appTaskExecutor) {
-        this.shopService = shopService;
+        this.shopFacade = shopFacade;
         this.logMapper = logMapper;
         this.redisTemplate = redisTemplate;
         this.cacheTtlSeconds = cacheTtlSeconds;
         this.appTaskExecutor = appTaskExecutor;
     }
 
-    public List<Shop> recommend(RecommendationRequest request) {
+    public List<ShopSummary> recommend(RecommendationRequest request) {
         String cacheKey = buildCacheKey(request);
         Object cached = redisTemplate.opsForValue().get(cacheKey);
         if (cached instanceof List) {
             return castList(cached);
         }
 
-        List<Shop> shops = shopService.list(request.getCity(), null);
+        List<ShopSummary> shops = shopFacade.listSummaries(request.getCity(), null);
         Collections.shuffle(shops);
-        List<Shop> result = shops.size() > 10 ? shops.subList(0, 10) : shops;
+        List<ShopSummary> result = shops.size() > 10 ? shops.subList(0, 10) : shops;
 
         if (!CollectionUtils.isEmpty(result)) {
             redisTemplate.opsForValue().set(cacheKey, result, cacheTtlSeconds, TimeUnit.SECONDS);
         }
 
         appTaskExecutor.execute(() -> {
-            for (Shop shop : result) {
+            for (ShopSummary shop : result) {
                 RecommendationLog log = new RecommendationLog();
                 log.setUserId(request.getUserId());
                 log.setShopId(shop.getId());
@@ -69,9 +69,9 @@ public class RecommendationService {
     }
 
     @SuppressWarnings("unchecked")
-    private List<Shop> castList(Object cached) {
+    private List<ShopSummary> castList(Object cached) {
         if (cached instanceof List) {
-            return (List<Shop>) cached;
+            return (List<ShopSummary>) cached;
         }
         return new ArrayList<>();
     }

@@ -1,7 +1,7 @@
 package com.dianping.user.dto;
 
-import com.dianping.coupon.dto.UserCouponView;
-import com.dianping.post.entity.Post;
+import com.dianping.common.dto.UserCouponView;
+import com.dianping.common.dto.PostSummary;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -12,11 +12,11 @@ public class UserProfileResponse {
     private String role;
     private String city;
     private BigDecimal balance;
-    private List<Post> posts;
+    private List<PostSummary> posts;
     private List<UserCouponView> coupons;
 
     public UserProfileResponse(Long userId, String username, String role, String city,
-                               BigDecimal balance, List<Post> posts, List<UserCouponView> coupons) {
+                               BigDecimal balance, List<PostSummary> posts, List<UserCouponView> coupons) {
         this.userId = userId;
         this.username = username;
         this.role = role;
@@ -46,7 +46,7 @@ public class UserProfileResponse {
         return balance;
     }
 
-    public List<Post> getPosts() {
+    public List<PostSummary> getPosts() {
         return posts;
     }
 

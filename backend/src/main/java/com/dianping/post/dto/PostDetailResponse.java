@@ -2,7 +2,7 @@ package com.dianping.post.dto;
 
 import com.dianping.post.entity.Post;
 import com.dianping.post.entity.PostComment;
-import com.dianping.shop.entity.Shop;
+import com.dianping.common.dto.ShopSummary;
 
 import java.util.List;
 
@@ -11,10 +11,10 @@ public class PostDetailResponse {
     private long likeCount;
     private boolean liked;
     private boolean followed;
-    private Shop shop;
+    private ShopSummary shop;
     private List<PostComment> comments;
 
-    public PostDetailResponse(Post post, long likeCount, boolean liked, boolean followed, Shop shop, List<PostComment> comments) {
+    public PostDetailResponse(Post post, long likeCount, boolean liked, boolean followed, ShopSummary shop, List<PostComment> comments) {
         this.post = post;
         this.likeCount = likeCount;
         this.liked = liked;
@@ -39,8 +39,12 @@ public class PostDetailResponse {
         return followed;
     }
 
-    public Shop getShop() {
+    public ShopSummary getShop() {
         return shop;
+    }
+
+    public void setShop(ShopSummary shop) {
+        this.shop = shop;
     }
 
     public List<PostComment> getComments() {

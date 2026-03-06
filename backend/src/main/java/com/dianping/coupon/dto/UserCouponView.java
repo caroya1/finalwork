@@ -1,78 +1,10 @@
 package com.dianping.coupon.dto;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
-
-public class UserCouponView {
-    private Long purchaseId;
-    private Long couponId;
-    private Long shopId;
-    private String type;
-    private String title;
-    private String description;
-    private BigDecimal discountAmount;
-    private BigDecimal price;
-    private String status;
-    private String refundReason;
-    private LocalDateTime purchasedAt;
-
+@Deprecated
+public class UserCouponView extends com.dianping.common.dto.UserCouponView {
     public UserCouponView(Long purchaseId, Long couponId, Long shopId, String type, String title,
-                          String description, BigDecimal discountAmount, BigDecimal price,
-                          String status, String refundReason, LocalDateTime purchasedAt) {
-        this.purchaseId = purchaseId;
-        this.couponId = couponId;
-        this.shopId = shopId;
-        this.type = type;
-        this.title = title;
-        this.description = description;
-        this.discountAmount = discountAmount;
-        this.price = price;
-        this.status = status;
-        this.refundReason = refundReason;
-        this.purchasedAt = purchasedAt;
-    }
-
-    public Long getPurchaseId() {
-        return purchaseId;
-    }
-
-    public Long getCouponId() {
-        return couponId;
-    }
-
-    public Long getShopId() {
-        return shopId;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public BigDecimal getDiscountAmount() {
-        return discountAmount;
-    }
-
-    public BigDecimal getPrice() {
-        return price;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public String getRefundReason() {
-        return refundReason;
-    }
-
-    public LocalDateTime getPurchasedAt() {
-        return purchasedAt;
+                          String description, java.math.BigDecimal discountAmount, java.math.BigDecimal price,
+                          String status, String refundReason, java.time.LocalDateTime purchasedAt) {
+        super(purchaseId, couponId, shopId, type, title, description, discountAmount, price, status, refundReason, purchasedAt);
     }
 }

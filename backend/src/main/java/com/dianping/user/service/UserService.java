@@ -1,7 +1,8 @@
 package com.dianping.user.service;
 
 import com.dianping.common.exception.BusinessException;
-import com.dianping.auth.service.PasswordService;
+import com.dianping.common.service.PasswordFacade;
+import com.dianping.common.dto.UserSummary;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dianping.user.entity.User;
 import com.dianping.user.dto.UserCreateRequest;
@@ -14,11 +15,11 @@ import java.util.List;
 @Service
 public class UserService {
     private final UserMapper userMapper;
-    private final PasswordService passwordService;
+    private final PasswordFacade passwordFacade;
 
-    public UserService(UserMapper userMapper, PasswordService passwordService) {
+    public UserService(UserMapper userMapper, PasswordFacade passwordFacade) {
         this.userMapper = userMapper;
-        this.passwordService = passwordService;
+        this.passwordFacade = passwordFacade;
     }
 
     public User create(UserCreateRequest request) {
@@ -35,7 +36,7 @@ public class UserService {
         user.setCity(request.getCity());
         user.setUserRole(request.getRole() == null || request.getRole().trim().isEmpty() ? "user" : request.getRole());
         user.setBalance(BigDecimal.ZERO);
-        user.setPasswordHash(passwordService.encode(request.getPassword()));
+        user.setPasswordHash(passwordFacade.encode(request.getPassword()));
         user.touchForCreate();
         userMapper.insert(user);
         return user;
@@ -67,6 +68,20 @@ public class UserService {
 
     public User findById(Long userId) {
         return userMapper.selectById(userId);
+    }
+
+    public UserSummary getSummary(Long userId) {
+        User user = findById(userId);
+        if (user == null) {
+            return null;
+        }
+        return new UserSummary(
+                user.getId(),
+                user.getUsername(),
+                user.getCity(),
+                user.getUserRole(),
+                user.getBalance()
+        );
     }
 
     public User updateCity(Long userId, String city) {

@@ -5,10 +5,10 @@ import com.dianping.user.dto.BalanceRechargeRequest;
 import com.dianping.user.dto.UserCreateRequest;
 import com.dianping.user.dto.UpdateCityRequest;
 import com.dianping.user.dto.UserProfileResponse;
-import com.dianping.post.entity.Post;
-import com.dianping.post.service.PostService;
-import com.dianping.coupon.dto.UserCouponView;
-import com.dianping.coupon.service.UserCouponService;
+import com.dianping.common.dto.PostSummary;
+import com.dianping.common.dto.UserCouponView;
+import com.dianping.common.service.PostFacade;
+import com.dianping.common.service.CouponFacade;
 import com.dianping.user.entity.User;
 import com.dianping.user.service.UserService;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -26,16 +26,16 @@ import java.util.concurrent.Executor;
 @Validated
 public class UserController {
     private final UserService userService;
-    private final PostService postService;
-    private final UserCouponService userCouponService;
+    private final PostFacade postFacade;
+    private final CouponFacade couponFacade;
     private final Executor appTaskExecutor;
 
-    public UserController(UserService userService, PostService postService,
-                          UserCouponService userCouponService,
+    public UserController(UserService userService, PostFacade postFacade,
+                          CouponFacade couponFacade,
                           @Qualifier("appTaskExecutor") Executor appTaskExecutor) {
         this.userService = userService;
-        this.postService = postService;
-        this.userCouponService = userCouponService;
+        this.postFacade = postFacade;
+        this.couponFacade = couponFacade;
         this.appTaskExecutor = appTaskExecutor;
     }
 
@@ -67,11 +67,11 @@ public class UserController {
         if (user == null) {
             return ApiResponse.fail("user not found");
         }
-        CompletableFuture<List<Post>> postsFuture = CompletableFuture.supplyAsync(
-                () -> postService.listByUser(id), appTaskExecutor);
+        CompletableFuture<List<PostSummary>> postsFuture = CompletableFuture.supplyAsync(
+                () -> postFacade.listSummariesByUser(id), appTaskExecutor);
         CompletableFuture<List<UserCouponView>> couponsFuture = CompletableFuture.supplyAsync(
-                () -> userCouponService.listByUser(id), appTaskExecutor);
-        List<Post> posts = postsFuture.join();
+                () -> couponFacade.listByUser(id), appTaskExecutor);
+        List<PostSummary> posts = postsFuture.join();
         List<UserCouponView> coupons = couponsFuture.join();
         UserProfileResponse response = new UserProfileResponse(
                 user.getId(),
