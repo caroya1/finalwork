@@ -6,13 +6,29 @@ const app = express();
 
 const target = process.env.GATEWAY_TARGET || "http://localhost:8080";
 const port = Number(process.env.GATEWAY_PORT || 8081);
-const allowedOrigin = process.env.GATEWAY_ORIGIN || "http://localhost:5173";
-
-app.use(cors({
-  origin: allowedOrigin,
+const allowedOriginsEnv = process.env.GATEWAY_ORIGINS;
+const corsOptions = {
   credentials: true,
-  exposedHeaders: ["Authorization", "X-Refresh-Token"]
-}));
+  exposedHeaders: ["Authorization", "X-Refresh-Token"],
+  optionsSuccessStatus: 200
+};
+
+if (allowedOriginsEnv && allowedOriginsEnv.trim()) {
+  const allowedOrigins = new Set(
+    allowedOriginsEnv.split(",").map((origin) => origin.trim()).filter(Boolean)
+  );
+  corsOptions.origin = (origin, callback) => {
+    if (!origin || allowedOrigins.has(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(new Error("Not allowed by CORS"));
+  };
+} else {
+  corsOptions.origin = true;
+}
+
+app.use(cors(corsOptions));
 
 app.use("/api", createProxyMiddleware({
   target,

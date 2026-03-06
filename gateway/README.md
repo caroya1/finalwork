@@ -13,5 +13,5 @@ npm start
 
 - `GATEWAY_PORT` (default: 8081)
 - `GATEWAY_TARGET` (default: http://localhost:8080)
-- `GATEWAY_ORIGIN` (default: http://localhost:5173)
+- `GATEWAY_ORIGINS` (comma-separated allowlist, optional)
 ```
