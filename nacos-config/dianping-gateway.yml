@@ -2,10 +2,38 @@ spring:
   cloud:
     gateway:
       routes:
-        - id: dianping-backend
-          uri: lb://dianping-backend
+        - id: auth-service
+          uri: lb://auth-service
           predicates:
-            - Path=/api/**
+            - Path=/api/auth/**
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/**
+        - id: merchant-service
+          uri: lb://merchant-service
+          predicates:
+            - Path=/api/merchants/**
+        - id: shop-service
+          uri: lb://shop-service
+          predicates:
+            - Path=/api/shops/**
+        - id: coupon-service
+          uri: lb://coupon-service
+          predicates:
+            - Path=/api/coupons/**
+        - id: order-service
+          uri: lb://order-service
+          predicates:
+            - Path=/api/orders/**
+        - id: post-service
+          uri: lb://post-service
+          predicates:
+            - Path=/api/posts/**
+        - id: recommendation-service
+          uri: lb://recommendation-service
+          predicates:
+            - Path=/api/recommendations/**
       globalcors:
         corsConfigurations:
           '[/**]':
