@@ -133,7 +133,7 @@ public class CouponService {
         return couponMapper.selectList(new LambdaQueryWrapper<Coupon>().eq(Coupon::getShopId, shopId));
     }
 
-    @Transactional
+    @Transactional(transactionManager = "couponTransactionManager")
     public CouponPurchase purchase(Long couponId, Long userId) {
         Coupon coupon = couponMapper.selectById(couponId);
         if (coupon == null) {
@@ -158,7 +158,7 @@ public class CouponService {
         return purchase;
     }
 
-    @Transactional
+    @Transactional(transactionManager = "couponTransactionManager")
     public CouponPurchase refund(Long purchaseId, Long userId, String reason) {
         if (reason == null || reason.trim().isEmpty()) {
             throw new BusinessException("refund reason is required");

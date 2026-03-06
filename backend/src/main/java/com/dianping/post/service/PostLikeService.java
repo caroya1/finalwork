@@ -35,7 +35,7 @@ public class PostLikeService {
                 .eq(PostLike::getUserId, userId)) > 0;
     }
 
-    @Transactional
+    @Transactional(transactionManager = "postTransactionManager")
     public void like(Long postId, Long userId) {
         Post post = postMapper.selectById(postId);
         if (post == null) {
@@ -57,7 +57,7 @@ public class PostLikeService {
         postMapper.updateById(post);
     }
 
-    @Transactional
+    @Transactional(transactionManager = "postTransactionManager")
     public void unlike(Long postId, Long userId) {
         Post post = postMapper.selectById(postId);
         if (post == null) {

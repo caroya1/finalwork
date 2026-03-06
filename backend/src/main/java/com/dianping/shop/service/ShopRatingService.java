@@ -24,7 +24,7 @@ public class ShopRatingService {
         this.shopService = shopService;
     }
 
-    @Transactional
+    @Transactional(transactionManager = "shopTransactionManager")
     public void rate(Long shopId, Long userId, ShopRatingRequest request) {
         if (request.getRating() == null || request.getRating() < 0 || request.getRating() > 5) {
             throw new BusinessException("rating must be between 0 and 5");
