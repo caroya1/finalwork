@@ -12,11 +12,12 @@
 - Nacos（192.168.145.128:8848）
 
 ## 后端启动
-1. 创建数据库 `dianping`
+1. 创建各模块数据库：`dianping_user` / `dianping_merchant` / `dianping_shop` / `dianping_coupon` / `dianping_order` / `dianping_post` / `dianping_recommendation`
 2. 启动 Redis 与 rabbitMQ
 3. 启动 Nacos
 4. 在 Nacos 中新增配置 `dianping-backend.yml`（见 `nacos-config/dianping-backend.yml`）
-5. 进入 `backend` 目录运行：
+5. 按模块初始化数据库（`backend/src/main/resources/schema-*.sql`、`backend/src/main/resources/data-*.sql`）
+6. 进入 `backend` 目录运行：
 
 ```bash
 mvn spring-boot:run
