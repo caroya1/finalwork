@@ -1,9 +1,9 @@
 server:
-  port: 8080
+  port: 8081
 
 spring:
   application:
-    name: dianping-backend
+    name: dianping-gateway
   cloud:
     nacos:
       discovery:
@@ -11,3 +11,9 @@ spring:
       config:
         server-addr: 192.168.145.128:8848
         file-extension: yml
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

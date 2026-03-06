@@ -5,6 +5,8 @@ frontend-merchant/node_modules/
 frontend-merchant/dist/
 frontend-admin/node_modules/
 frontend-admin/dist/
+gateway/target/
+gateway/node_modules/
 .idea/
 .vscode/
 .DS_Store
