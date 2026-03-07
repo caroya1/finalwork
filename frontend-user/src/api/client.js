@@ -10,6 +10,10 @@ client.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
+  const userId = localStorage.getItem("dp_user_id");
+  if (userId) {
+    config.headers["X-User-Id"] = userId;
+  }
   const refreshToken = localStorage.getItem("dp_refresh_token");
   if (refreshToken) {
     config.headers["X-Refresh-Token"] = refreshToken;

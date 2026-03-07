@@ -1,6 +1,7 @@
 package com.dianping.shop.controller;
 
 import com.dianping.common.api.ApiResponse;
+import com.dianping.common.web.AuthUserResolver;
 import com.dianping.shop.dto.ShopDetailResponse;
 import com.dianping.shop.dto.ShopDishRequest;
 import com.dianping.shop.dto.ShopRatingRequest;
@@ -74,11 +75,12 @@ public class ShopController {
     @PostMapping("/{id}/rate")
     public ApiResponse<Void> rate(@PathVariable("id") Long id,
                                   @RequestBody ShopRatingRequest request,
-                                  Authentication authentication) {
-        if (authentication == null || authentication.getPrincipal() == null) {
+                                  Authentication authentication,
+                                  @RequestHeader(value = "X-User-Id", required = false) String headerUserId) {
+        Long userId = AuthUserResolver.resolveUserId(authentication == null ? null : authentication.getPrincipal(), headerUserId);
+        if (userId == null) {
             return ApiResponse.fail("login required");
         }
-        Long userId = Long.parseLong(authentication.getPrincipal().toString());
         shopRatingService.rate(id, userId, request);
         return ApiResponse.ok(null);
     }
@@ -91,11 +93,12 @@ public class ShopController {
     @PostMapping("/{id}/dishes")
     public ApiResponse<ShopDish> addDish(@PathVariable("id") Long id,
                                          @RequestBody ShopDishRequest request,
-                                         Authentication authentication) {
-        if (authentication == null || authentication.getPrincipal() == null) {
+                                         Authentication authentication,
+                                         @RequestHeader(value = "X-User-Id", required = false) String headerUserId) {
+        Long userId = AuthUserResolver.resolveUserId(authentication == null ? null : authentication.getPrincipal(), headerUserId);
+        if (userId == null) {
             return ApiResponse.fail("login required");
         }
-        Long userId = Long.parseLong(authentication.getPrincipal().toString());
         ShopDish dish = new ShopDish();
         dish.setName(request.getName());
         dish.setPrice(request.getPrice());

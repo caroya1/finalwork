@@ -1,6 +1,7 @@
 package com.dianping.post.controller;
 
 import com.dianping.common.api.ApiResponse;
+import com.dianping.common.web.AuthUserResolver;
 import com.dianping.post.dto.PostCreateRequest;
 import com.dianping.post.dto.PostDetailResponse;
 import com.dianping.post.entity.Post;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 import jakarta.validation.Valid;
 
@@ -40,39 +42,45 @@ public class PostController {
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<PostDetailResponse> detail(@PathVariable("id") Long id, Authentication authentication) {
-        Long userId = authentication != null ? Long.parseLong(authentication.getPrincipal().toString()) : null;
+    public ApiResponse<PostDetailResponse> detail(@PathVariable("id") Long id,
+                                                  Authentication authentication,
+                                                  @RequestHeader(value = "X-User-Id", required = false) String headerUserId) {
+        Long userId = AuthUserResolver.resolveUserId(authentication == null ? null : authentication.getPrincipal(), headerUserId);
         return ApiResponse.ok(postService.getDetail(id, userId));
     }
 
     @PostMapping("/{id}/comments")
     public ApiResponse<Void> comment(@PathVariable("id") Long id,
                                      @Valid @RequestBody PostCommentRequest request,
-                                     Authentication authentication) {
-        if (authentication == null || authentication.getPrincipal() == null) {
+                                     Authentication authentication,
+                                     @RequestHeader(value = "X-User-Id", required = false) String headerUserId) {
+        Long userId = AuthUserResolver.resolveUserId(authentication == null ? null : authentication.getPrincipal(), headerUserId);
+        if (userId == null) {
             return ApiResponse.fail("login required");
         }
-        Long userId = Long.parseLong(authentication.getPrincipal().toString());
         postCommentService.addComment(id, userId, request);
         return ApiResponse.ok(null);
     }
 
     @PostMapping
     public ApiResponse<Post> create(@Valid @RequestBody PostCreateRequest request,
-                                    Authentication authentication) {
-        if (authentication == null || authentication.getPrincipal() == null) {
+                                    Authentication authentication,
+                                    @RequestHeader(value = "X-User-Id", required = false) String headerUserId) {
+        Long userId = AuthUserResolver.resolveUserId(authentication == null ? null : authentication.getPrincipal(), headerUserId);
+        if (userId == null) {
             return ApiResponse.fail("login required");
         }
-        Long userId = Long.parseLong(authentication.getPrincipal().toString());
         return ApiResponse.ok(postService.create(userId, request));
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> delete(@PathVariable("id") Long id, Authentication authentication) {
-        if (authentication == null || authentication.getPrincipal() == null) {
+    public ApiResponse<Void> delete(@PathVariable("id") Long id,
+                                    Authentication authentication,
+                                    @RequestHeader(value = "X-User-Id", required = false) String headerUserId) {
+        Long userId = AuthUserResolver.resolveUserId(authentication == null ? null : authentication.getPrincipal(), headerUserId);
+        if (userId == null) {
             return ApiResponse.fail("login required");
         }
-        Long userId = Long.parseLong(authentication.getPrincipal().toString());
         postService.delete(id, userId);
         return ApiResponse.ok(null);
     }

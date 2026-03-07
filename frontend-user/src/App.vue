@@ -183,6 +183,35 @@ const emitSearch = () => {
   }));
 };
 
+const refreshCurrentRouteByCity = (city) => {
+  const current = router.currentRoute.value;
+  if (current.path === "/search") {
+    router.replace({
+      path: "/search",
+      query: {
+        ...current.query,
+        city
+      }
+    });
+    return;
+  }
+  if (current.path === "/category") {
+    router.replace({
+      path: "/category",
+      query: {
+        ...current.query,
+        city
+      }
+    });
+    return;
+  }
+  if (current.path === "/") {
+    window.dispatchEvent(new CustomEvent("dp-search", {
+      detail: { keyword: "", mode: "search" }
+    }));
+  }
+};
+
 const setSearchMode = (mode) => {
   searchMode.value = mode;
 };
@@ -368,7 +397,7 @@ const selectCity = async (city) => {
     }
   }
 
-  /* 触发重新搜索 */
-  emitSearch();
+  /* 仅刷新当前页面对应的城市数据，不强制跳到搜索页 */
+  refreshCurrentRouteByCity(city);
 };
 </script>

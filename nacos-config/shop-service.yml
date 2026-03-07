@@ -17,7 +17,7 @@ spring:
 
 app:
   shop:
-    cache-ttl-seconds: 300
+    cache-ttl-seconds: 30000
 
 mybatis-plus:
   configuration:
