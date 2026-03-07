@@ -1,4 +1,5 @@
 backend/target/
+backend/backend/
 frontend-user/node_modules/
 frontend-user/dist/
 frontend-merchant/node_modules/
@@ -6,6 +7,7 @@ frontend-merchant/dist/
 frontend-admin/node_modules/
 frontend-admin/dist/
 gateway/target/
+services/*/target/
 gateway/node_modules/
 .idea/
 .vscode/

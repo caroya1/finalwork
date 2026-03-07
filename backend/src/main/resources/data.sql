@@ -1,1 +1,0 @@
--- 已拆分到模块化种子数据：data-user.sql / data-merchant.sql / data-shop.sql / data-post.sql / data-order.sql / data-recommendation.sql / data-coupon.sql
