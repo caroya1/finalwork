@@ -15,6 +15,10 @@ spring:
       port: 6379
       password: 123456
 
+app:
+  post:
+    cache-ttl-seconds: 300
+
 mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true

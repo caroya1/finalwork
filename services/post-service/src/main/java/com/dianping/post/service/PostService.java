@@ -12,32 +12,46 @@ import com.dianping.common.dto.ShopSummary;
 import com.dianping.common.dto.PostSummary;
 import com.dianping.common.port.ShopPort;
 import com.dianping.common.port.UserFollowPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class PostService {
+    private static final Logger log = LoggerFactory.getLogger(PostService.class);
+    private static final String POST_CACHE_PREFIX = "dp:post:";
+
     private final PostMapper postMapper;
     private final PostLikeService postLikeService;
     private final PostCommentMapper postCommentMapper;
     private final ShopPort shopPort;
     private final Executor appTaskExecutor;
     private final UserFollowPort userFollowPort;
+    private final RedisTemplate<String, Object> redisTemplate;
+    private final long cacheTtlSeconds;
 
     public PostService(PostMapper postMapper, PostLikeService postLikeService,
                        PostCommentMapper postCommentMapper, ShopPort shopPort,
                        @Qualifier("appTaskExecutor") Executor appTaskExecutor,
-                       UserFollowPort userFollowPort) {
+                       UserFollowPort userFollowPort,
+                       RedisTemplate<String, Object> redisTemplate,
+                       @Value("${app.post.cache-ttl-seconds:300}") long cacheTtlSeconds) {
         this.postMapper = postMapper;
         this.postLikeService = postLikeService;
         this.postCommentMapper = postCommentMapper;
         this.shopPort = shopPort;
         this.appTaskExecutor = appTaskExecutor;
         this.userFollowPort = userFollowPort;
+        this.redisTemplate = redisTemplate;
+        this.cacheTtlSeconds = cacheTtlSeconds;
     }
 
     public List<Post> list(String city, String keyword, Long shopId) {
@@ -104,7 +118,7 @@ public class PostService {
     }
 
     public PostDetailResponse getDetail(Long postId, Long userId) {
-        Post post = postMapper.selectById(postId);
+        Post post = getById(postId);
         if (post == null) {
             throw new BusinessException("post not found");
         }
@@ -158,11 +172,12 @@ public class PostService {
         post.setLikes(0);
         post.touchForCreate();
         postMapper.insert(post);
+        safeSet(buildPostCacheKey(post.getId()), post, cacheTtlSeconds, TimeUnit.SECONDS);
         return post;
     }
 
     public void delete(Long postId, Long userId) {
-        Post post = postMapper.selectById(postId);
+        Post post = getById(postId);
         if (post == null) {
             throw new BusinessException("post not found");
         }
@@ -170,6 +185,52 @@ public class PostService {
             throw new BusinessException("no permission");
         }
         postMapper.deleteById(postId);
+        safeDelete(buildPostCacheKey(postId));
+    }
+
+    private Post getById(Long postId) {
+        if (postId == null) {
+            return null;
+        }
+        String cacheKey = buildPostCacheKey(postId);
+        Object cached = safeGet(cacheKey);
+        if (cached instanceof Post) {
+            return (Post) cached;
+        }
+        Post post = postMapper.selectById(postId);
+        if (post != null) {
+            safeSet(cacheKey, post, cacheTtlSeconds, TimeUnit.SECONDS);
+        }
+        return post;
+    }
+
+    private String buildPostCacheKey(Long postId) {
+        return POST_CACHE_PREFIX + postId;
+    }
+
+    private Object safeGet(String key) {
+        try {
+            return redisTemplate.opsForValue().get(key);
+        } catch (RuntimeException ex) {
+            log.warn("Redis get failed for key {}, fallback to database", key, ex);
+            safeDelete(key);
+            return null;
+        }
+    }
+
+    private void safeSet(String key, Object value, long ttl, TimeUnit unit) {
+        try {
+            redisTemplate.opsForValue().set(key, value, ttl, unit);
+        } catch (RuntimeException ex) {
+            log.warn("Redis set failed for key {}, skip cache write", key, ex);
+        }
+    }
+
+    private void safeDelete(String key) {
+        try {
+            redisTemplate.delete(key);
+        } catch (RuntimeException ignored) {
+        }
     }
 
     private String resolveCity(String city, Long shopId) {
