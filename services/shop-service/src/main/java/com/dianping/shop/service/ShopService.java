@@ -4,6 +4,8 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dianping.shop.entity.Shop;
 import com.dianping.shop.mapper.ShopMapper;
 import com.dianping.common.dto.ShopSummary;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import java.util.stream.Collectors;
 
 @Service
 public class ShopService {
+    private static final Logger log = LoggerFactory.getLogger(ShopService.class);
     private static final String SHOP_LIST_CACHE_PREFIX = "dp:shop:list:";
     private static final String SHOP_CACHE_PREFIX = "dp:shop:";
 
@@ -38,13 +41,13 @@ public class ShopService {
             return null;
         }
         String cacheKey = SHOP_CACHE_PREFIX + id;
-        Object cached = redisTemplate.opsForValue().get(cacheKey);
+        Object cached = safeGet(cacheKey);
         if (cached instanceof Shop) {
             return (Shop) cached;
         }
         Shop shop = shopMapper.selectById(id);
         if (shop != null) {
-            redisTemplate.opsForValue().set(cacheKey, shop, cacheTtlSeconds, TimeUnit.SECONDS);
+            safeSet(cacheKey, shop, cacheTtlSeconds, TimeUnit.SECONDS);
         }
         return shop;
     }
@@ -96,7 +99,7 @@ public class ShopService {
 
     public List<Shop> list(String city, String category) {
         String cacheKey = buildListCacheKey(city, category);
-        Object cached = redisTemplate.opsForValue().get(cacheKey);
+        Object cached = safeGet(cacheKey);
         if (cached instanceof List) {
             return castList(cached);
         }
@@ -118,7 +121,7 @@ public class ShopService {
         wrapper.orderByDesc(Shop::getRating).orderByDesc(Shop::getCreatedAt);
         List<Shop> shops = shopMapper.selectList(wrapper);
         if (!CollectionUtils.isEmpty(shops)) {
-            redisTemplate.opsForValue().set(cacheKey, shops, cacheTtlSeconds, TimeUnit.SECONDS);
+            safeSet(cacheKey, shops, cacheTtlSeconds, TimeUnit.SECONDS);
         }
         return shops;
     }
@@ -134,21 +137,46 @@ public class ShopService {
 
     public void invalidateCache(Long shopId, String city, String category) {
         if (shopId != null) {
-            redisTemplate.delete(SHOP_CACHE_PREFIX + shopId);
+            safeDelete(SHOP_CACHE_PREFIX + shopId);
         }
         if (city != null && !city.trim().isEmpty()) {
-            redisTemplate.delete(buildListCacheKey(city, null));
+            safeDelete(buildListCacheKey(city, null));
             if (category != null && !category.trim().isEmpty()) {
                 List<String> categories = splitCategories(category);
                 if (categories.size() <= 1) {
-                    redisTemplate.delete(buildListCacheKey(city, category));
+                    safeDelete(buildListCacheKey(city, category));
                 } else {
                     for (String item : categories) {
-                        redisTemplate.delete(buildListCacheKey(city, item));
+                        safeDelete(buildListCacheKey(city, item));
                     }
-                    redisTemplate.delete(buildListCacheKey(city, String.join(",", categories)));
+                    safeDelete(buildListCacheKey(city, String.join(",", categories)));
                 }
             }
+        }
+    }
+
+    private Object safeGet(String key) {
+        try {
+            return redisTemplate.opsForValue().get(key);
+        } catch (RuntimeException ex) {
+            log.warn("Redis get failed for key {}, fallback to database", key, ex);
+            safeDelete(key);
+            return null;
+        }
+    }
+
+    private void safeSet(String key, Object value, long ttl, TimeUnit unit) {
+        try {
+            redisTemplate.opsForValue().set(key, value, ttl, unit);
+        } catch (RuntimeException ex) {
+            log.warn("Redis set failed for key {}, skip cache write", key, ex);
+        }
+    }
+
+    private void safeDelete(String key) {
+        try {
+            redisTemplate.delete(key);
+        } catch (RuntimeException ignored) {
         }
     }
 

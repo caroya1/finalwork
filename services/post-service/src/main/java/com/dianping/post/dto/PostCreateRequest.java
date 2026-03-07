@@ -1,6 +1,6 @@
 package com.dianping.post.dto;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 public class PostCreateRequest {
     @NotBlank(message = "title is required")

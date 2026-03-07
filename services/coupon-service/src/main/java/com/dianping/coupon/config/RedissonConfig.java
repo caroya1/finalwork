@@ -10,9 +10,9 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RedissonConfig {
     @Bean(destroyMethod = "shutdown")
-    public RedissonClient redissonClient(@Value("${spring.redis.host}") String host,
-                                         @Value("${spring.redis.port}") int port,
-                                         @Value("${spring.redis.password:}") String password) {
+    public RedissonClient redissonClient(@Value("${spring.data.redis.host}") String host,
+                                         @Value("${spring.data.redis.port}") int port,
+                                         @Value("${spring.data.redis.password:}") String password) {
         Config config = new Config();
         String address = "redis://" + host + ":" + port;
         config.useSingleServer().setAddress(address);

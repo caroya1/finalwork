@@ -1,0 +1,23 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="shop-service" type="MavenRunConfiguration" factoryName="Maven">
+    <MavenSettings>
+      <option name="myGeneralSettings">
+        <MavenGeneralSettings>
+          <option name="workDir" value="$PROJECT_DIR$" />
+        </MavenGeneralSettings>
+      </option>
+      <option name="myRunnerParameters">
+        <MavenRunnerParameters>
+          <option name="workingDirPath" value="$PROJECT_DIR$" />
+          <option name="pomFileName" value="$PROJECT_DIR$/services/shop-service/pom.xml" />
+          <option name="goals">
+            <list>
+              <option value="spring-boot:run" />
+            </list>
+          </option>
+        </MavenRunnerParameters>
+      </option>
+    </MavenSettings>
+    <method v="2" />
+  </configuration>
+</component>

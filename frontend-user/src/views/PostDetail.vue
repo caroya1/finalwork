@@ -55,7 +55,7 @@
         <span class="tag" v-for="tag in tagList" :key="tag"># {{ tag }}</span>
       </div>
 
-      <RouterLink v-if="shop" class="shop-link" :to="`/shops/${shop.id}`">
+      <RouterLink v-if="shop && shopLinkId" class="shop-link" :to="`/shops/${shopLinkId}`">
         <div class="shop-thumb"></div>
         <div class="shop-info">
           <div class="shop-name">{{ shop.name }}</div>
@@ -103,10 +103,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from "vue";
+import { computed, ref, onMounted, watch } from "vue";
 import { useRoute, RouterLink, useRouter } from "vue-router";
 import { getPostDetail, likePost as likePostApi, unlikePost as unlikePostApi, addComment, deletePost } from "../api/post";
 import { followUser, unfollowUser } from "../api/user";
+import { getShopDetail } from "../api/shop";
 
 const route = useRoute();
 const router = useRouter();
@@ -123,16 +124,50 @@ const actionMessage = ref("");
 const isLoggedIn = ref(false);
 const tagList = ref([]);
 const isSelf = ref(false);
+const shopLinkId = computed(() => {
+  if (shop.value && shop.value.id != null) {
+    return shop.value.id;
+  }
+  if (post.value && post.value.shopId != null) {
+    return post.value.shopId;
+  }
+  return null;
+});
+
+const enrichShopDetail = async (shopId, baseShop) => {
+  if (shopId == null) {
+    return baseShop;
+  }
+  try {
+    const response = await getShopDetail(shopId);
+    if (response.success && response.data && response.data.shop) {
+      return { ...baseShop, ...response.data.shop };
+    }
+  } catch (error) {
+    return baseShop;
+  }
+  return baseShop;
+};
 
 const loadPost = async () => {
   const response = await getPostDetail(route.params.id);
   if (response.success) {
-    post.value = response.data.post;
-    likeCount.value = response.data.likeCount;
-    liked.value = response.data.liked;
-    followed.value = !!response.data.followed;
-    comments.value = response.data.comments || [];
-    shop.value = response.data.shop || null;
+    const detail = response.data || {};
+    post.value = detail.post;
+    likeCount.value = detail.likeCount;
+    liked.value = detail.liked;
+    followed.value = !!detail.followed;
+    comments.value = detail.comments || [];
+    shop.value = detail.shop || null;
+    if (post.value && post.value.shopId != null) {
+      const needsFallback = !shop.value || shop.value.id == null;
+      const needsEnrich = shop.value && (!shop.value.name || !shop.value.city || !shop.value.address);
+      if (needsFallback) {
+        shop.value = await enrichShopDetail(post.value.shopId, { id: post.value.shopId });
+      } else if (needsEnrich) {
+        shop.value = await enrichShopDetail(post.value.shopId, shop.value);
+      }
+    }
     tagList.value = post.value.tags ? post.value.tags.split(",") : [];
     const userId = localStorage.getItem("dp_user_id");
     isSelf.value = !!userId && post.value && String(userId) === String(post.value.userId);

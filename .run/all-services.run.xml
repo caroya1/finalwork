@@ -1,0 +1,18 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="all-services" type="CompoundRunConfigurationType" factoryName="Compound">
+    <option name="runConfigurations">
+      <list>
+        <value>auth-service</value>
+        <value>user-service</value>
+        <value>merchant-service</value>
+        <value>shop-service</value>
+        <value>coupon-service</value>
+        <value>order-service</value>
+        <value>post-service</value>
+        <value>recommendation-service</value>
+        <value>gateway</value>
+      </list>
+    </option>
+    <method v="2" />
+  </configuration>
+</component>

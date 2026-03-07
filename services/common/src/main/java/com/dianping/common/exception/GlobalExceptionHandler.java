@@ -20,6 +20,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ApiResponse<Void> handleException(Exception ex) {
+        ex.printStackTrace();
         return ApiResponse.fail("internal error");
     }
 }

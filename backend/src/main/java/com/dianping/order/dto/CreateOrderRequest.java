@@ -1,7 +1,7 @@
 package com.dianping.order.dto;
 
-import javax.validation.constraints.Min;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 
 public class CreateOrderRequest {
     @NotNull(message = "userId is required")

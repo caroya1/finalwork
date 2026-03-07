@@ -19,22 +19,23 @@ public class SecurityConfig {
                                            RedisTemplate<String, Object> redisTemplate,
                                            @Value("${app.jwt.expire-minutes:120}") long accessExpireMinutes,
                                            @Value("${app.jwt.refresh-expire-days:7}") long refreshExpireDays) throws Exception {
-        http.cors().and()
-                .csrf().disable()
-                .httpBasic().disable()
-                .formLogin().disable()
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                .and()
-                .authorizeRequests()
-                .antMatchers("/api/auth/**", "/api/users", "/api/users/*/city", "/api/users/*/recharge", "/api/users/*/profile").permitAll()
-                .antMatchers(HttpMethod.GET, "/api/posts", "/api/posts/*").permitAll()
-                .antMatchers(HttpMethod.DELETE, "/api/posts/*").authenticated()
-                .antMatchers(HttpMethod.GET, "/api/shops", "/api/shops/*", "/api/shops/*/dishes").permitAll()
-                .antMatchers(HttpMethod.POST, "/api/posts/*/like", "/api/posts/*/comments", "/api/shops/*/rate", "/api/shops/*/dishes").permitAll()
-                .antMatchers(HttpMethod.DELETE, "/api/posts/*/like").permitAll()
-                .antMatchers(HttpMethod.GET, "/api/coupons").permitAll()
-                .antMatchers(HttpMethod.POST, "/api/merchants").permitAll()
-                .anyRequest().authenticated();
+        http
+                .cors(cors -> {})
+                .csrf(csrf -> csrf.disable())
+                .httpBasic(basic -> basic.disable())
+                .formLogin(form -> form.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**", "/api/users", "/api/users/*/city", "/api/users/*/recharge", "/api/users/*/profile").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/*").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/posts/*").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/shops", "/api/shops/*", "/api/shops/*/dishes").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/posts/*/like", "/api/posts/*/comments", "/api/shops/*/rate", "/api/shops/*/dishes").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/posts/*/like").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/coupons").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/merchants").permitAll()
+                        .anyRequest().authenticated()
+                );
 
         long accessTtlSeconds = accessExpireMinutes * 60;
         long refreshTtlSeconds = refreshExpireDays * 24 * 60 * 60;

@@ -1,6 +1,6 @@
 package com.dianping.auth.dto;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 public class RefreshRequest {
     @NotBlank(message = "refreshToken is required")

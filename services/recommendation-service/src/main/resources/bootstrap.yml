@@ -3,6 +3,8 @@ spring:
     name: recommendation-service
   cloud:
     nacos:
+      discovery:
+        server-addr: 192.168.145.128:8848
       config:
         server-addr: 192.168.145.128:8848
         file-extension: yml

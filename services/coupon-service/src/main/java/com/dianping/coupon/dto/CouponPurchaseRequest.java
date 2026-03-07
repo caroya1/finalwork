@@ -1,6 +1,6 @@
 package com.dianping.coupon.dto;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 public class CouponPurchaseRequest {
     @NotNull(message = "userId is required")

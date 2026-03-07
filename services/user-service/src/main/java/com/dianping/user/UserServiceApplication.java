@@ -5,7 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.openfeign.EnableFeignClients;
 
 @SpringBootApplication(scanBasePackages = "com.dianping")
-@EnableFeignClients(basePackages = "com.dianping")
+@EnableFeignClients(basePackages = "com.dianping.user.client")
 public class UserServiceApplication {
     public static void main(String[] args) {
         SpringApplication.run(UserServiceApplication.class, args);

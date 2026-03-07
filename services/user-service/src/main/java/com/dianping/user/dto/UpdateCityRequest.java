@@ -1,6 +1,6 @@
 package com.dianping.user.dto;
 
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 public class UpdateCityRequest {
     @NotBlank(message = "city is required")

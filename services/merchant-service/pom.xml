@@ -18,14 +18,20 @@
             <artifactId>common</artifactId>
             <version>1.0.0</version>
         </dependency>
+
+        <!-- Spring Boot 项目推荐使用 Starter -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-boot-starter</artifactId>
-            <version>3.5.6</version>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+            <version>3.5.7</version>
         </dependency>
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
