@@ -34,6 +34,10 @@ spring:
           uri: lb://recommendation-service
           predicates:
             - Path=/api/recommendations/**
+        - id: post-service-oss
+          uri: lb://post-service
+          predicates:
+            - Path=/api/oss/**
       globalcors:
         add-to-simple-url-handler-mapping: true
         corsConfigurations:

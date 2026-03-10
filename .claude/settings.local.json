@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -la services/*/)",
+      "Bash(find backend/src -name \"*.sql\" 2>/dev/null | head -20)",
+      "Bash(mvn -f services/pom.xml -pl common clean install -DskipTests 2>&1 | tail -30)",
+      "Bash(mvn -f services/pom.xml -pl common clean install -DskipTests 2>&1 | tail -20)",
+      "Bash(mvn -f services/pom.xml clean install -DskipTests 2>&1 | tail -40)",
+      "Bash(mvn -f services/pom.xml -pl common clean install -DskipTests 2>&1 | tail -15)",
+      "Bash(mvn -f services/pom.xml clean install -DskipTests 2>&1 | tail -25)",
+      "Bash(mvn -f services/post-service/pom.xml clean install -DskipTests 2>&1 | tail -15)",
+      "Bash(curl -s http://localhost:8081/api/oss/upload/image -X POST -H \"Content-Type: multipart/form-data\" -F \"file=@/dev/null\" 2>&1 | head -20)",
+      "Bash(curl -s http://localhost:8097/actuator/health 2>&1 || echo \"Service not running or no actuator\")",
+      "Bash(curl -s http://localhost:8097/api/oss/upload/image -X POST -H \"Content-Type: multipart/form-data\" -F \"file=@/dev/null\" 2>&1)",
+      "Bash(curl -s http://localhost:8081/actuator/gateway/routes 2>&1 | grep -i oss || echo \"No OSS route found\")",
+      "Bash(curl -s http://localhost:8081/actuator/gateway/routes 2>&1 | head -50)",
+      "Bash(curl -s \"http://localhost:8848/nacos/v1/cs/configs?dataId=dianping-backend.yml&group=DEFAULT_GROUP\" 2>&1 | grep -A10 \"oss:\" || echo \"OSS config not found in Nacos\")",
+      "Bash(mvn -f services/pom.xml clean install -DskipTests -pl common,post-service -am 2>&1 | tail -20)",
+      "Bash(curl -s http://localhost:8097/api/oss/upload/image -X POST -F \"file=@/e/finalWork/README.md;type=image/jpeg\" -F \"dir=posts\" 2>&1)",
+      "Bash(curl -s http://localhost:8097/api/oss/upload/image -X POST -H \"Content-Type: multipart/form-data\" -F \"dir=posts\" 2>&1)",
+      "Bash(mvn -f services/pom.xml clean install -DskipTests -pl common,post-service -am 2>&1 | tail -10)",
+      "Bash(git add:*)"
+    ]
+  }
+}

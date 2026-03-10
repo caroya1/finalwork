@@ -21,6 +21,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ApiResponse<Void> handleException(Exception ex) {
         ex.printStackTrace();
-        return ApiResponse.fail("internal error");
+        String message = ex.getMessage();
+        if (message == null || message.isEmpty()) {
+            message = "internal error: " + ex.getClass().getSimpleName();
+        }
+        return ApiResponse.fail(message);
     }
 }
