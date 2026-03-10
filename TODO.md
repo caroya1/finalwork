@@ -41,50 +41,53 @@
 
 ## 🟡 P1 - 高优先级（业务闭环）
 
-### 3. 商户端功能完善
-**现状**：只有基础框架，几乎没有实际功能页面
+### 3. 商户端功能完善 ✅ **已完成**
+**现状**：✅ 已完成商户登录、门店管理、菜品管理、订单管理、优惠券管理、数据统计
 
-- [ ] 商户登录/注册
-- [ ] 门店信息管理
-- [ ] 菜品管理（增删改查）
-- [ ] 订单管理（查看、核销）
-- [ ] 优惠券管理（创建、查看）
-- [ ] 评价管理（查看、回复）
-- [ ] 数据统计（营业额、订单量）
+- [x] 商户登录/注册
+- [x] 门店信息管理
+- [x] 菜品管理（增删改查）
+- [x] 订单管理（查看、核销）
+- [x] 优惠券管理（创建、查看）
+- [x] 评价管理（查看、回复）
+- [x] 数据统计（营业额、订单量）
 
 **相关文件**：
 - `frontend-merchant/src/views/MerchantHome.vue`
+- `services/merchant-service/src/main/java/com/dianping/merchant/controller/MerchantController.java`
+- `services/shop-service/src/main/java/com/dianping/shop/controller/MerchantShopController.java`
 
 ---
 
-### 4. 管理员端功能完善
-**现状**：只有基础框架
+### 4. 管理员端功能完善 ✅ **已完成**
+**现状**：✅ 已完成管理员独立登录、用户管理、商户审核、内容审核、数据看板
 
-- [ ] 管理员登录
-- [ ] 用户管理（查看、封禁）
-- [ ] 商户审核（入驻审核）
-- [ ] 内容审核（帖子、评价审核）
-- [ ] 数据看板（日活、订单量、推荐点击率）
-- [ ] 系统配置管理
+- [x] 管理员登录（独立账号体系 dp_admin）
+- [x] 用户管理（查看、封禁）
+- [x] 商户审核（入驻审核）
+- [x] 内容审核（帖子、评价审核）
+- [x] 数据看板（日活、订单量、推荐点击率）
+- [x] 系统配置管理（本地草案）
 
 **相关文件**：
 - `frontend-admin/src/views/AdminHome.vue`
+- `services/auth-service/src/main/java/com/dianping/auth/controller/AuthController.java`
+- `services/user-service/src/main/java/com/dianping/user/controller/AdminUserController.java`
 
 ---
 
-### 5. 图片上传与存储
-**现状**：已完成腾讯云OSS接入
-**状态**：✅ **已完成**
+### 5. 图片上传与存储 ✅ **已完成**
+**现状**：✅ 已完成腾讯云OSS接入，用户头像、店铺图片、菜品图片上传
 
 - [x] 腾讯云OSS SDK集成
 - [x] 图片上传接口
 - [x] 前端图片上传组件
 - [x] 帖子封面上传功能
+- [x] 用户头像上传
+- [x] 店铺图片上传
+- [x] 菜品图片上传
 
 **待扩展**：
-- [ ] 用户头像上传
-- [ ] 店铺图片上传
-- [ ] 菜品图片上传
 - [ ] 图片压缩/水印处理
 
 ---
@@ -100,17 +103,21 @@
 
 ---
 
-### 7. 订单系统完善
-**现状**：订单服务过于简单，只有基础CRUD
+### 7. 订单系统完善 ✅ **已完成**
+**现状**：✅ 已完成订单状态机、超时取消、搜索筛选、导出功能
 
-- [ ] 订单状态机（待支付、已支付、已核销、已退款）
+- [x] 订单状态机（待支付、已支付、已核销、已退款）
+- [x] 订单超时自动取消（定时任务）
+- [x] 订单搜索与筛选
+- [x] 订单导出（CSV）
+
+**暂不做**：
 - [ ] 分布式事务（Seata）
-- [ ] 订单超时自动取消
-- [ ] 订单搜索与筛选
-- [ ] 订单导出
 
 **相关文件**：
 - `services/order-service/src/main/java/com/dianping/order/service/OrderService.java`
+- `services/order-service/src/main/java/com/dianping/order/enums/OrderStatus.java`
+- `services/order-service/src/main/java/com/dianping/order/task/OrderTimeoutTask.java`
 
 ---
 
@@ -138,16 +145,19 @@
 
 ---
 
-### 10. 安全加固
-**现状**：存在明显安全隐患
+### 10. 安全加固 🔄 **部分完成**
+**现状**：✅ 已完成敏感词过滤
 
 - [ ] 接口限流（Rate Limiting）
-- [ ] 敏感词过滤（帖子、评价内容）
+- [x] 敏感词过滤（帖子、评价内容）
 - [ ] 防刷机制（验证码、滑动验证）
 - [ ] SQL注入防护检查
 - [ ] XSS防护
 - [ ] JWT Token自动续期
 - [ ] 接口权限细化（RBAC）
+
+**相关文件**：
+- `services/common/src/main/java/com/dianping/common/util/SensitiveWordFilter.java`
 
 ---
 
@@ -201,9 +211,9 @@
 | 优先级 | 总数 | 已完成 | 进行中 | 待完成 |
 |--------|------|--------|--------|--------|
 | 🔴 P0  | 2    | 0      | 0      | 2      |
-| 🟡 P1  | 5    | 1      | 0      | 4      |
-| 🟢 P2  | 7    | 0      | 0      | 7      |
-| **合计** | **14** | **1** | **0** | **13** |
+| 🟡 P1  | 5    | 4      | 0      | 1      |
+| 🟢 P2  | 7    | 0      | 1      | 6      |
+| **合计** | **14** | **4** | **1** | **9** |
 
 ---
 
