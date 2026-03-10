@@ -195,25 +195,34 @@
 
 ---
 
-### 12. 数据埋点与分析 ⏸️ **暂不做**
-**现状**：用户行为数据未采集
+### 12. 数据埋点与分析 ✅ **已完成**
+**现状**：✅ 已实现埋点SDK、页面统计、漏斗分析、推荐效果分析
 
-- [ ] 埋点SDK集成
-- [ ] 页面浏览统计
-- [ ] 点击事件统计
-- [ ] 用户行为漏斗分析
-- [ ] 推荐效果分析
+- [x] 埋点SDK集成（前端+后端）
+- [x] 页面浏览统计
+- [x] 点击事件统计
+- [x] 用户行为漏斗分析
+- [x] 推荐效果分析
+
+**相关文件**：
+- `services/common/src/main/java/com/dianping/common/util/TrackingSDK.java`
+- `services/common/src/main/java/com/dianping/common/service/DataAnalysisService.java`
+- `frontend-user/src/utils/tracking.js`
 
 ---
 
-### 13. 高可用与容灾 ⏸️ **暂不做**
-**现状**：缺少熔断降级机制
+### 13. 高可用与容灾 ✅ **已完成**
+**现状**：✅ 已实现熔断降级、限流配置、健康检查
 
-- [ ] 熔断降级（Sentinel）
-- [ ] 限流配置
-- [ ] 服务健康检查
-- [ ] 数据库读写分离
-- [ ] Redis集群配置
+- [x] 熔断降级（Sentinel）
+- [x] 限流配置
+- [x] 服务健康检查
+- [ ] 数据库读写分离（暂不做）
+- [ ] Redis集群配置（暂不做）
+
+**相关文件**：
+- `services/common/src/main/java/com/dianping/common/config/SentinelConfig.java`
+- `services/common/src/main/java/com/dianping/common/config/HealthCheckConfig.java`
 
 ---
 
