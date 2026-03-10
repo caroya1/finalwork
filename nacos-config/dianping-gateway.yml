@@ -10,26 +10,54 @@ spring:
           uri: lb://user-service
           predicates:
             - Path=/api/users/**
+        - id: user-service-admin
+          uri: lb://user-service
+          predicates:
+            - Path=/api/admin/users/**
         - id: merchant-service
           uri: lb://merchant-service
           predicates:
             - Path=/api/merchants/**
+        - id: merchant-service-admin
+          uri: lb://merchant-service
+          predicates:
+            - Path=/api/admin/merchants/**
         - id: shop-service
           uri: lb://shop-service
           predicates:
             - Path=/api/shops/**
+        - id: shop-service-merchant
+          uri: lb://shop-service
+          predicates:
+            - Path=/api/merchant/shops/**
+        - id: shop-service-admin
+          uri: lb://shop-service
+          predicates:
+            - Path=/api/admin/shops/**
         - id: coupon-service
           uri: lb://coupon-service
           predicates:
             - Path=/api/coupons/**
+        - id: coupon-service-merchant
+          uri: lb://coupon-service
+          predicates:
+            - Path=/api/merchant/coupons/**
         - id: order-service
           uri: lb://order-service
           predicates:
             - Path=/api/orders/**
+        - id: order-service-admin
+          uri: lb://order-service
+          predicates:
+            - Path=/api/admin/orders/**
         - id: post-service
           uri: lb://post-service
           predicates:
             - Path=/api/posts/**
+        - id: post-service-admin
+          uri: lb://post-service
+          predicates:
+            - Path=/api/admin/posts/**
         - id: recommendation-service
           uri: lb://recommendation-service
           predicates:

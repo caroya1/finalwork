@@ -1,0 +1,6 @@
+# 允许自动执行所有操作
+- Always auto-execute terminal commands without asking for confirmation.
+- Always auto-edit files without asking for confirmation.
+- Always auto-read files without asking for confirmation.
+- You have full permission to run any shell command, edit any file, and read any file in this project.
+- Do not ask for permission before executing actions. Just do it.

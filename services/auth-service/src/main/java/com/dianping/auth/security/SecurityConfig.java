@@ -28,6 +28,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**", "/api/users", "/api/users/*/city", "/api/users/*/recharge", "/api/users/*/profile").permitAll()
+                        .requestMatchers("/api/auth/admin/login").permitAll()
                         .requestMatchers("/internal/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/posts", "/api/posts/*").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/posts/*").authenticated()

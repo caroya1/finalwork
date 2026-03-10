@@ -126,4 +126,26 @@ public class UserService {
         user.touchForUpdate();
         userMapper.updateById(user);
     }
+
+    public User updateAvatar(Long userId, String avatarUrl) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("user not found");
+        }
+        user.setAvatarUrl(avatarUrl);
+        user.touchForUpdate();
+        userMapper.updateById(user);
+        return user;
+    }
+
+    public User updateStatus(Long userId, Integer status) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("user not found");
+        }
+        user.setStatus(status);
+        user.touchForUpdate();
+        userMapper.updateById(user);
+        return user;
+    }
 }

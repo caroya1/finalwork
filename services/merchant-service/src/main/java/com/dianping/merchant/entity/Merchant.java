@@ -3,7 +3,6 @@ package com.dianping.merchant.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
 @TableName("dp_merchant")
@@ -11,14 +10,21 @@ public class Merchant {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    @NotBlank(message = "name is required")
     private String name;
+
+    private String contactName;
+
+    private String contactPhone;
+
+    private String email;
+
+    private String passwordHash;
+
+    private Integer status;
 
     private String category;
 
     private String city;
-
-    private String status;
 
     private Double rating;
 
@@ -30,12 +36,14 @@ public class Merchant {
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
+        if (this.status == null) {
+            this.status = 0;
+        }
     }
 
     public void touchForUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
-
 
     public Long getId() {
         return id;
@@ -53,6 +61,46 @@ public class Merchant {
         this.name = name;
     }
 
+    public String getContactName() {
+        return contactName;
+    }
+
+    public void setContactName(String contactName) {
+        this.contactName = contactName;
+    }
+
+    public String getContactPhone() {
+        return contactPhone;
+    }
+
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
+    public Integer getStatus() {
+        return status;
+    }
+
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
+
     public String getCategory() {
         return category;
     }
@@ -67,14 +115,6 @@ public class Merchant {
 
     public void setCity(String city) {
         this.city = city;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 
     public Double getRating() {

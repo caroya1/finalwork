@@ -1,0 +1,2 @@
+-- 本文件已废弃。
+-- merchant 表结构已合并到最新初始化脚本：backend/sql/dianping_merchant.sql

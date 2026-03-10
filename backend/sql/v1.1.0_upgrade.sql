@@ -1,0 +1,9 @@
+-- 本文件已废弃。
+-- 请使用 backend/sql 目录下按库划分的最新初始化脚本：
+-- 1) dianping_user.sql
+-- 2) dianping_merchant.sql
+-- 3) dianping_shop.sql
+-- 4) dianping_coupon.sql
+-- 5) dianping_order.sql
+-- 6) dianping_post.sql
+-- 7) dianping_recommendation.sql

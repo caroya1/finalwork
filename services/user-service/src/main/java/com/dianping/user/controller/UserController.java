@@ -84,4 +84,10 @@ public class UserController {
         );
         return ApiResponse.ok(response);
     }
+
+    @PutMapping("/{id}/avatar")
+    public ApiResponse<User> updateAvatar(@PathVariable("id") Long id,
+                                          @RequestParam("avatarUrl") String avatarUrl) {
+        return ApiResponse.ok(userService.updateAvatar(id, avatarUrl));
+    }
 }

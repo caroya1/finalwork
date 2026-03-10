@@ -41,11 +41,15 @@
           >注册</button>
         </div>
         <div class="form-grid">
-          <input v-model="authForm.username" placeholder="用户名 / 手机 / 邮箱" />
+          <template v-if="authMode === 'register'">
+            <input v-model="authForm.name" placeholder="商户名称" />
+            <input v-model="authForm.contactName" placeholder="联系人" />
+            <input v-model="authForm.contactPhone" placeholder="联系电话" />
+            <input v-model="authForm.category" placeholder="商户分类" />
+          </template>
+          <input v-model="authForm.email" placeholder="邮箱" />
           <input v-model="authForm.password" type="password" placeholder="密码" />
           <template v-if="authMode === 'register'">
-            <input v-model="authForm.email" placeholder="邮箱" />
-            <input v-model="authForm.phone" placeholder="手机号" />
             <select v-model="authForm.city" class="form-select">
               <option value="" disabled>选择默认城市</option>
               <option v-for="c in cityOptions" :key="c" :value="c">{{ c }}</option>
@@ -66,8 +70,8 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRouter, RouterLink, RouterView } from "vue-router";
-import { login, logout } from "./api/auth";
-import { register, updateCity } from "./api/user";
+import { logout } from "./api/auth";
+import { merchantLogin, merchantRegister } from "./api/merchant";
 
 const router = useRouter();
 const cityOptions = [
@@ -92,12 +96,13 @@ onMounted(checkLoginState);
 const authOpen = ref(false);
 const authMode = ref("login");
 const authForm = ref({
-  username: "",
-  password: "",
+  name: "",
+  contactName: "",
+  contactPhone: "",
   email: "",
-  phone: "",
+  password: "",
   city: "上海",
-  role: "merchant"
+  category: ""
 });
 const authMessage = ref("");
 const authMessageType = ref("");
@@ -107,12 +112,13 @@ const openAuth = (mode) => {
   authMessage.value = "";
   authMessageType.value = "";
   authForm.value = {
-    username: "",
-    password: "",
+    name: "",
+    contactName: "",
+    contactPhone: "",
     email: "",
-    phone: "",
+    password: "",
     city: "上海",
-    role: "merchant"
+    category: ""
   };
   authOpen.value = true;
 };
@@ -131,21 +137,22 @@ const submitAuth = async () => {
   authMessage.value = "";
   authMessageType.value = "";
 
-  if (!authForm.value.username || !authForm.value.password) {
-    authMessage.value = "请填写用户名和密码";
+  if (!authForm.value.email || !authForm.value.password) {
+    authMessage.value = "请填写邮箱和密码";
     authMessageType.value = "error";
     return;
   }
 
   try {
     if (authMode.value === "register") {
-      const regResp = await register({
-        username: authForm.value.username,
-        password: authForm.value.password,
+      const regResp = await merchantRegister({
+        name: authForm.value.name,
+        contactName: authForm.value.contactName,
+        contactPhone: authForm.value.contactPhone,
         email: authForm.value.email,
-        phone: authForm.value.phone,
+        password: authForm.value.password,
         city: authForm.value.city || "上海",
-        role: authForm.value.role
+        category: authForm.value.category
       });
       if (!regResp.success) {
         authMessage.value = regResp.message || "注册失败";
@@ -154,8 +161,8 @@ const submitAuth = async () => {
       }
     }
 
-    const loginResp = await login({
-      username: authForm.value.username,
+    const loginResp = await merchantLogin({
+      email: authForm.value.email,
       password: authForm.value.password
     });
 
@@ -166,27 +173,20 @@ const submitAuth = async () => {
     }
 
     localStorage.setItem("dp_token", loginResp.data.token);
+    localStorage.setItem("dp_merchant_token", loginResp.data.token);
+    localStorage.setItem("dp_merchant_id", String(loginResp.data.merchantId));
+    localStorage.setItem("dp_merchant_name", loginResp.data.name || "");
+    localStorage.setItem("dp_merchant_email", loginResp.data.email || authForm.value.email);
     if (loginResp.data.refreshToken) {
       localStorage.setItem("dp_refresh_token", loginResp.data.refreshToken);
     }
-    localStorage.setItem("dp_user_id", String(loginResp.data.userId));
-    if (loginResp.data.username) {
-      localStorage.setItem("dp_username", loginResp.data.username);
-    } else {
-      localStorage.setItem("dp_username", authForm.value.username);
-    }
+    localStorage.setItem("dp_user_id", String(loginResp.data.merchantId));
+    localStorage.setItem("dp_username", loginResp.data.name || authForm.value.email);
     localStorage.setItem("dp_role", "merchant");
-
-    const userCity = loginResp.data.city || "上海";
-    localStorage.setItem("dp_city", userCity);
-
-    if (authMode.value === "register" && authForm.value.city) {
-      await updateCity(loginResp.data.userId, authForm.value.city);
-      localStorage.setItem("dp_city", authForm.value.city);
-    }
+    localStorage.setItem("dp_city", authForm.value.city || "上海");
 
     isLoggedIn.value = true;
-    currentUsername.value = authForm.value.username;
+    currentUsername.value = loginResp.data.name || authForm.value.email;
     authOpen.value = false;
     router.push("/");
   } catch {
@@ -206,6 +206,10 @@ const doLogout = async () => {
     }
   }
   localStorage.removeItem("dp_token");
+  localStorage.removeItem("dp_merchant_token");
+  localStorage.removeItem("dp_merchant_id");
+  localStorage.removeItem("dp_merchant_name");
+  localStorage.removeItem("dp_merchant_email");
   localStorage.removeItem("dp_user_id");
   localStorage.removeItem("dp_refresh_token");
   localStorage.removeItem("dp_username");

@@ -29,4 +29,37 @@ public class ShopDishService {
         shopDishMapper.insert(dish);
         return dish;
     }
+
+    public ShopDish updateDish(Long dishId, ShopDish updateData) {
+        ShopDish dish = shopDishMapper.selectById(dishId);
+        if (dish == null) {
+            return null;
+        }
+        if (updateData.getName() != null) {
+            dish.setName(updateData.getName());
+        }
+        if (updateData.getPrice() != null) {
+            dish.setPrice(updateData.getPrice());
+        }
+        if (updateData.getDescription() != null) {
+            dish.setDescription(updateData.getDescription());
+        }
+        if (updateData.getImageUrl() != null) {
+            dish.setImageUrl(updateData.getImageUrl());
+        }
+        shopDishMapper.updateById(dish);
+        return dish;
+    }
+
+    public void deleteDish(Long dishId) {
+        shopDishMapper.deleteById(dishId);
+    }
+
+    public void updateStatus(Long dishId, Integer status) {
+        ShopDish dish = shopDishMapper.selectById(dishId);
+        if (dish != null) {
+            dish.setStatus(status);
+            shopDishMapper.updateById(dish);
+        }
+    }
 }

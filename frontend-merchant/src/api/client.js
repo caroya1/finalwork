@@ -14,6 +14,10 @@ client.interceptors.request.use((config) => {
   if (refreshToken) {
     config.headers["X-Refresh-Token"] = refreshToken;
   }
+  const merchantId = localStorage.getItem("dp_merchant_id");
+  if (merchantId) {
+    config.headers["X-Merchant-Id"] = merchantId;
+  }
   return config;
 });
 

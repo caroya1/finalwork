@@ -3,6 +3,9 @@ import client from "./client";
 export const login = (payload) =>
   client.post("/api/auth/login", payload).then((res) => res.data);
 
+export const adminLogin = (payload) =>
+  client.post("/api/auth/admin/login", payload).then((res) => res.data);
+
 export const logout = (refreshToken, accessToken) =>
   client
     .post("/api/auth/logout", { refreshToken }, {

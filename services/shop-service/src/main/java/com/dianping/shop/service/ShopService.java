@@ -135,6 +135,65 @@ public class ShopService {
         return shopMapper.search(trimmedCity, trimmedKeyword);
     }
 
+    public List<Shop> listByMerchantId(Long merchantId) {
+        LambdaQueryWrapper<Shop> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Shop::getMerchantId, merchantId)
+               .orderByDesc(Shop::getCreatedAt);
+        return shopMapper.selectList(wrapper);
+    }
+
+    public Shop update(Long id, Shop updateData) {
+        Shop shop = shopMapper.selectById(id);
+        if (shop == null) {
+            return null;
+        }
+        if (StringUtils.hasText(updateData.getName())) {
+            shop.setName(updateData.getName());
+        }
+        if (StringUtils.hasText(updateData.getCategory())) {
+            shop.setCategory(updateData.getCategory());
+        }
+        if (StringUtils.hasText(updateData.getTags())) {
+            shop.setTags(updateData.getTags());
+        }
+        if (StringUtils.hasText(updateData.getAddress())) {
+            shop.setAddress(updateData.getAddress());
+        }
+        if (StringUtils.hasText(updateData.getCity())) {
+            shop.setCity(updateData.getCity());
+        }
+        if (updateData.getLongitude() != null) {
+            shop.setLongitude(updateData.getLongitude());
+        }
+        if (updateData.getLatitude() != null) {
+            shop.setLatitude(updateData.getLatitude());
+        }
+        if (StringUtils.hasText(updateData.getImageUrl())) {
+            shop.setImageUrl(updateData.getImageUrl());
+        }
+        if (StringUtils.hasText(updateData.getImages())) {
+            shop.setImages(updateData.getImages());
+        }
+        if (StringUtils.hasText(updateData.getBusinessHours())) {
+            shop.setBusinessHours(updateData.getBusinessHours());
+        }
+        if (StringUtils.hasText(updateData.getContactPhone())) {
+            shop.setContactPhone(updateData.getContactPhone());
+        }
+        shop.touchForUpdate();
+        shopMapper.updateById(shop);
+        invalidateCache(shop.getId(), shop.getCity(), shop.getCategory());
+        return shop;
+    }
+
+    public void delete(Long id) {
+        Shop shop = shopMapper.selectById(id);
+        if (shop != null) {
+            shopMapper.deleteById(id);
+            invalidateCache(id, shop.getCity(), shop.getCategory());
+        }
+    }
+
     public void invalidateCache(Long shopId, String city, String category) {
         if (shopId != null) {
             safeDelete(SHOP_CACHE_PREFIX + shopId);

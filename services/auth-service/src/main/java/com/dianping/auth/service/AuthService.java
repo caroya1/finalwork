@@ -3,7 +3,9 @@ package com.dianping.auth.service;
 import com.dianping.auth.dto.LoginRequest;
 import com.dianping.auth.dto.LoginResponse;
 import com.dianping.auth.dto.TokenPairResponse;
+import com.dianping.common.dto.AdminAuthView;
 import com.dianping.common.exception.BusinessException;
+import com.dianping.common.port.AdminAuthPort;
 import com.dianping.common.port.UserAuthPort;
 import com.dianping.common.dto.UserAuthView;
 import com.dianping.common.dto.UserSummary;
@@ -23,6 +25,7 @@ public class AuthService {
     private static final String USER_REFRESH_PREFIX = "dp:token:user:refresh:";
 
     private final UserAuthPort userAuthPort;
+    private final AdminAuthPort adminAuthPort;
     private final PasswordService passwordService;
     private final JwtService jwtService;
     private final RedisTemplate<String, Object> redisTemplate;
@@ -30,17 +33,43 @@ public class AuthService {
     private final long refreshTtlSeconds;
 
     public AuthService(UserAuthPort userAuthPort,
+                       AdminAuthPort adminAuthPort,
                        PasswordService passwordService,
                        JwtService jwtService,
                        RedisTemplate<String, Object> redisTemplate,
                        @Value("${app.jwt.expire-minutes:120}") long accessExpireMinutes,
                        @Value("${app.jwt.refresh-expire-days:7}") long refreshExpireDays) {
         this.userAuthPort = userAuthPort;
+        this.adminAuthPort = adminAuthPort;
         this.passwordService = passwordService;
         this.jwtService = jwtService;
         this.redisTemplate = redisTemplate;
         this.accessTtlSeconds = accessExpireMinutes * 60;
         this.refreshTtlSeconds = refreshExpireDays * 24 * 60 * 60;
+    }
+
+    public LoginResponse adminLogin(String username, String password) {
+        AdminAuthView admin = adminAuthPort.findByUsername(username);
+        if (admin == null) {
+            throw new BusinessException("invalid username or password");
+        }
+        if (admin.getStatus() == null || admin.getStatus() != 1) {
+            throw new BusinessException("admin account disabled");
+        }
+        if (!passwordService.matches(password, admin.getPasswordHash())) {
+            throw new BusinessException("invalid username or password");
+        }
+        String token = jwtService.generateAccessToken(admin.getId(), admin.getUsername());
+        String refreshToken = jwtService.generateRefreshToken(admin.getId(), admin.getUsername());
+        Map<String, String> payload = new HashMap<>(4);
+        payload.put("userId", String.valueOf(admin.getId()));
+        payload.put("username", admin.getUsername());
+        payload.put("role", admin.getRole() == null ? "admin" : admin.getRole());
+        payload.put("city", "");
+        redisTemplate.opsForValue().set(ACCESS_TOKEN_PREFIX + token, payload, accessTtlSeconds, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + refreshToken, payload, refreshTtlSeconds, TimeUnit.SECONDS);
+        storeTokenIndex(admin.getId(), token, refreshToken);
+        return new LoginResponse(token, refreshToken, admin.getId(), "", admin.getRole(), java.math.BigDecimal.ZERO, admin.getName() == null ? admin.getUsername() : admin.getName());
     }
 
     public LoginResponse login(LoginRequest request) {

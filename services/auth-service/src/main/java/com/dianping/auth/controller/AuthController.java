@@ -2,6 +2,7 @@ package com.dianping.auth.controller;
 
 import com.dianping.auth.dto.LoginRequest;
 import com.dianping.auth.dto.LoginResponse;
+import com.dianping.auth.dto.AdminLoginRequest;
 import com.dianping.auth.dto.LogoutRequest;
 import com.dianping.auth.dto.RefreshRequest;
 import com.dianping.auth.dto.TokenPairResponse;
@@ -25,6 +26,11 @@ public class AuthController {
     @PostMapping("/login")
     public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         return ApiResponse.ok(authService.login(request));
+    }
+
+    @PostMapping("/admin/login")
+    public ApiResponse<LoginResponse> adminLogin(@Valid @RequestBody AdminLoginRequest request) {
+        return ApiResponse.ok(authService.adminLogin(request.getUsername(), request.getPassword()));
     }
 
     @PostMapping("/refresh")

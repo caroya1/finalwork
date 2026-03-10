@@ -3,8 +3,6 @@ package com.dianping.user.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
@@ -13,10 +11,8 @@ public class User {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    @NotBlank(message = "username is required")
     private String username;
 
-    @Email(message = "email is invalid")
     private String email;
 
     private String phone;
@@ -31,6 +27,10 @@ public class User {
 
     private BigDecimal balance;
 
+    private Integer status;
+
+    private LocalDateTime lastLoginAt;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
@@ -39,12 +39,14 @@ public class User {
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
+        if (this.status == null) {
+            this.status = 1;
+        }
     }
 
     public void touchForUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
-
 
     public Long getId() {
         return id;
@@ -116,6 +118,22 @@ public class User {
 
     public void setBalance(BigDecimal balance) {
         this.balance = balance;
+    }
+
+    public Integer getStatus() {
+        return status;
+    }
+
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public void setLastLoginAt(LocalDateTime lastLoginAt) {
+        this.lastLoginAt = lastLoginAt;
     }
 
     public LocalDateTime getCreatedAt() {

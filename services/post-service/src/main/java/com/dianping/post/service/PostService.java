@@ -37,13 +37,15 @@ public class PostService {
     private final UserFollowPort userFollowPort;
     private final RedisTemplate<String, Object> redisTemplate;
     private final long cacheTtlSeconds;
+    private final com.dianping.common.util.SensitiveWordFilter sensitiveWordFilter;
 
     public PostService(PostMapper postMapper, PostLikeService postLikeService,
                        PostCommentMapper postCommentMapper, ShopPort shopPort,
                        @Qualifier("appTaskExecutor") Executor appTaskExecutor,
                        UserFollowPort userFollowPort,
                        RedisTemplate<String, Object> redisTemplate,
-                       @Value("${app.post.cache-ttl-seconds:300}") long cacheTtlSeconds) {
+                       @Value("${app.post.cache-ttl-seconds:300}") long cacheTtlSeconds,
+                       com.dianping.common.util.SensitiveWordFilter sensitiveWordFilter) {
         this.postMapper = postMapper;
         this.postLikeService = postLikeService;
         this.postCommentMapper = postCommentMapper;
@@ -52,6 +54,7 @@ public class PostService {
         this.userFollowPort = userFollowPort;
         this.redisTemplate = redisTemplate;
         this.cacheTtlSeconds = cacheTtlSeconds;
+        this.sensitiveWordFilter = sensitiveWordFilter;
     }
 
     public List<Post> list(String city, String keyword, Long shopId) {
@@ -155,6 +158,15 @@ public class PostService {
         if (userId == null) {
             throw new BusinessException("userId is required");
         }
+        // 敏感词检测
+        String title = request.getTitle().trim();
+        String content = request.getContent().trim();
+        if (sensitiveWordFilter.containsSensitiveWord(title)) {
+            throw new BusinessException("标题包含敏感词: " + sensitiveWordFilter.getSensitiveWords(title));
+        }
+        if (sensitiveWordFilter.containsSensitiveWord(content)) {
+            throw new BusinessException("内容包含敏感词: " + sensitiveWordFilter.getSensitiveWords(content));
+        }
         if (request.getShopId() != null) {
             ShopSummary shop = shopPort.getSummary(request.getShopId());
             if (shop == null) {
@@ -164,8 +176,8 @@ public class PostService {
         Post post = new Post();
         post.setUserId(userId);
         post.setShopId(request.getShopId());
-        post.setTitle(request.getTitle().trim());
-        post.setContent(request.getContent().trim());
+        post.setTitle(title);
+        post.setContent(content);
         post.setCoverUrl(request.getCoverUrl());
         post.setCity(resolveCity(request.getCity(), request.getShopId()));
         post.setTags(request.getTags());

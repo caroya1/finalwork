@@ -3,7 +3,6 @@ package com.dianping.shop.entity;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
-import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
 
 @TableName("dp_shop")
@@ -11,7 +10,6 @@ public class Shop {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    @NotBlank(message = "name is required")
     private String name;
 
     private String category;
@@ -23,9 +21,24 @@ public class Shop {
     private String address;
 
     private Double longitude;
+
     private Double latitude;
 
     private Long merchantId;
+
+    private String imageUrl;
+
+    private String images;
+
+    private String businessHours;
+
+    private String contactPhone;
+
+    private Integer status;
+
+    private Integer auditStatus;
+
+    private String auditRemark;
 
     private Double rating;
 
@@ -37,12 +50,17 @@ public class Shop {
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
+        if (this.status == null) {
+            this.status = 1;
+        }
+        if (this.auditStatus == null) {
+            this.auditStatus = 0;
+        }
     }
 
     public void touchForUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
-
 
     public Long getId() {
         return id;
@@ -114,6 +132,62 @@ public class Shop {
 
     public void setMerchantId(Long merchantId) {
         this.merchantId = merchantId;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public String getImages() {
+        return images;
+    }
+
+    public void setImages(String images) {
+        this.images = images;
+    }
+
+    public String getBusinessHours() {
+        return businessHours;
+    }
+
+    public void setBusinessHours(String businessHours) {
+        this.businessHours = businessHours;
+    }
+
+    public String getContactPhone() {
+        return contactPhone;
+    }
+
+    public void setContactPhone(String contactPhone) {
+        this.contactPhone = contactPhone;
+    }
+
+    public Integer getStatus() {
+        return status;
+    }
+
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
+
+    public Integer getAuditStatus() {
+        return auditStatus;
+    }
+
+    public void setAuditStatus(Integer auditStatus) {
+        this.auditStatus = auditStatus;
+    }
+
+    public String getAuditRemark() {
+        return auditRemark;
+    }
+
+    public void setAuditRemark(String auditRemark) {
+        this.auditRemark = auditRemark;
     }
 
     public Double getRating() {

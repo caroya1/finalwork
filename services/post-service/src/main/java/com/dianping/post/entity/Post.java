@@ -26,6 +26,10 @@ public class Post {
 
     private Integer likes;
 
+    private Integer auditStatus;
+
+    private String auditRemark;
+
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
@@ -34,6 +38,12 @@ public class Post {
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
         this.updatedAt = now;
+        if (this.auditStatus == null) {
+            this.auditStatus = 1;
+        }
+        if (this.likes == null) {
+            this.likes = 0;
+        }
     }
 
     public void touchForUpdate() {
@@ -110,6 +120,22 @@ public class Post {
 
     public void setLikes(Integer likes) {
         this.likes = likes;
+    }
+
+    public Integer getAuditStatus() {
+        return auditStatus;
+    }
+
+    public void setAuditStatus(Integer auditStatus) {
+        this.auditStatus = auditStatus;
+    }
+
+    public String getAuditRemark() {
+        return auditRemark;
+    }
+
+    public void setAuditRemark(String auditRemark) {
+        this.auditRemark = auditRemark;
     }
 
     public LocalDateTime getCreatedAt() {

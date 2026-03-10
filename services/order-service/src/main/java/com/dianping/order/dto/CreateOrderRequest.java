@@ -4,15 +4,19 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 public class CreateOrderRequest {
-    @NotNull(message = "userId is required")
+    @NotNull(message = "用户ID不能为空")
     private Long userId;
 
-    @NotNull(message = "shopId is required")
+    @NotNull(message = "店铺ID不能为空")
     private Long shopId;
 
-    @NotNull(message = "amount is required")
-    @Min(value = 1, message = "amount must be positive")
+    private Long couponId;
+
+    @NotNull(message = "订单金额不能为空")
+    @Min(value = 1, message = "订单金额必须大于0")
     private Integer amount;
+
+    private String remark;
 
     public Long getUserId() {
         return userId;
@@ -30,11 +34,27 @@ public class CreateOrderRequest {
         this.shopId = shopId;
     }
 
+    public Long getCouponId() {
+        return couponId;
+    }
+
+    public void setCouponId(Long couponId) {
+        this.couponId = couponId;
+    }
+
     public Integer getAmount() {
         return amount;
     }
 
     public void setAmount(Integer amount) {
         this.amount = amount;
+    }
+
+    public String getRemark() {
+        return remark;
+    }
+
+    public void setRemark(String remark) {
+        this.remark = remark;
     }
 }

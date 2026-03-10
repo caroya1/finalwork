@@ -19,7 +19,9 @@
       "Bash(curl -s http://localhost:8097/api/oss/upload/image -X POST -F \"file=@/e/finalWork/README.md;type=image/jpeg\" -F \"dir=posts\" 2>&1)",
       "Bash(curl -s http://localhost:8097/api/oss/upload/image -X POST -H \"Content-Type: multipart/form-data\" -F \"dir=posts\" 2>&1)",
       "Bash(mvn -f services/pom.xml clean install -DskipTests -pl common,post-service -am 2>&1 | tail -10)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(mvn -f services/pom.xml clean install -DskipTests -pl common,post-service -am 2>&1 | tail -15)"
     ]
   }
 }
