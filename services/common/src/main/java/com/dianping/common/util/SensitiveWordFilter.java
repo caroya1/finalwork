@@ -30,9 +30,7 @@ public class SensitiveWordFilter {
      * 默认敏感词列表
      */
     private static final String[] DEFAULT_SENSITIVE_WORDS = {
-            "色情", "赌博", "毒品", "暴力", "恐怖",
-            "法轮功", "台独", "藏独", "疆独", "反动",
-            "傻逼", "他妈的", "草泥马", "滚蛋", "去死"
+
     };
 
     @PostConstruct
