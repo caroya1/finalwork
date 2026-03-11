@@ -31,8 +31,8 @@ public class SeckillOrderHandler {
     private final UserAuthPort userAuthPort;
     private final RedissonClient redissonClient;
     
-    // 锁等待时间（秒）
-    private static final long LOCK_WAIT_TIME = 5;
+    // 锁等待时间（秒）- 增加到 10 秒，避免高并发下超时
+    private static final long LOCK_WAIT_TIME = 10;
     // 锁自动释放时间（秒）- 看门狗机制会自动续期
     private static final long LOCK_LEASE_TIME = 30;
     
@@ -98,14 +98,19 @@ public class SeckillOrderHandler {
      * 实际业务处理
      */
     private void doHandle(Long couponId, Long userId) {
+        logger.info("开始处理业务逻辑, couponId={}, userId={}", couponId, userId);
+        
         // 1. 查询优惠券
         Coupon coupon = couponMapper.selectById(couponId);
         if (coupon == null) {
+            logger.error("优惠券不存在, couponId={}", couponId);
             throw new BusinessException("优惠券不存在");
         }
+        logger.debug("查询优惠券成功, couponId={}, remainingStock={}", couponId, coupon.getRemainingStock());
         
         // 2. 检查库存
         if (coupon.getRemainingStock() == null || coupon.getRemainingStock() <= 0) {
+            logger.warn("优惠券已售罄, couponId={}, remainingStock={}", couponId, coupon.getRemainingStock());
             throw new BusinessException("优惠券已售罄");
         }
         
@@ -131,13 +136,14 @@ public class SeckillOrderHandler {
             logger.debug("扣减余额成功, userId={}, amount={}", userId, price);
         }
         
-        // 6. 扣减库存
-        coupon.setRemainingStock(coupon.getRemainingStock() - 1);
-        coupon.touchForUpdate();
-        int updateResult = couponMapper.updateById(coupon);
+        // 6. 原子性扣减库存（使用 SQL 保证并发安全）
+        logger.info("准备扣减库存, couponId={}, currentStock={}", couponId, coupon.getRemainingStock());
+        int updateResult = couponMapper.decrementStock(couponId);
         if (updateResult == 0) {
+            logger.error("库存扣减失败, couponId={}, stock={}", couponId, coupon.getRemainingStock());
             throw new BusinessException("库存不足");
         }
+        logger.info("库存扣减成功, couponId={}, updateResult={}", couponId, updateResult);
         
         // 7. 更新或创建购买记录
         if (existing != null) {
@@ -179,8 +185,10 @@ public class SeckillOrderHandler {
     
     /**
      * 构建锁的key
+     * 使用优惠券级别锁，控制库存扣减的并发
+     * 用户幂等性已在 Redis Lua 脚本中保证
      */
     private String buildLockKey(Long couponId, Long userId) {
-        return "dp:seckill:lock:v2:" + couponId + ":" + userId;
+        return "dp:seckill:lock:v2:" + couponId;
     }
 }

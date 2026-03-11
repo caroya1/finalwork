@@ -1,3 +1,23 @@
+package com.dianping.coupon.stress;
+
+import com.dianping.common.exception.BusinessException;
+import com.dianping.coupon.entity.Coupon;
+import com.dianping.coupon.entity.CouponPurchase;
+import com.dianping.coupon.mapper.CouponMapper;
+import com.dianping.coupon.service.CouponService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
 /**
  * 秒杀压力测试
  * 测试场景：1000个并发用户抢购50个库存的秒杀券
@@ -11,6 +31,10 @@
  */
 @Component
 public class SeckillStressTest implements CommandLineRunner {
+    
+    private static final String SECKILL_STOCK_KEY_PREFIX = "dp:seckill:stock:";
+    private static final String SECKILL_COUPON_KEY_PREFIX = "dp:seckill:coupon:";
+    private static final String SECKILL_USER_KEY_PREFIX = "dp:seckill:user:";
     
     private static final Logger logger = LoggerFactory.getLogger(SeckillStressTest.class);
     
@@ -59,7 +83,7 @@ public class SeckillStressTest implements CommandLineRunner {
                     
                     try {
                         // 调用秒杀接口
-                        CouponPurchase purchase = couponService.purchaseCoupon(TEST_COUPON_ID, userId);
+                        CouponPurchase purchase = couponService.purchase(TEST_COUPON_ID, userId);
                         
                         if (purchase != null && "processing".equals(purchase.getStatus())) {
                             successCount.incrementAndGet();
@@ -128,8 +152,7 @@ public class SeckillStressTest implements CommandLineRunner {
         coupon.setPrice(new BigDecimal("1.00"));
         coupon.setStartTime(LocalDateTime.now().minusMinutes(1));
         coupon.setEndTime(LocalDateTime.now().plusHours(1));
-        coupon.setStatus(1);
-        coupon.setMerchantId(1L);
+        coupon.setShopId(1L);
         coupon.touchForCreate();
         
         // 先删除旧数据

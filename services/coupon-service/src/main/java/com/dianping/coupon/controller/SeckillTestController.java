@@ -50,9 +50,9 @@ public class SeckillTestController {
      */
     @PostMapping("/seckill-stress")
     public Map<String, Object> runStressTest(
-            @RequestParam(defaultValue = "1000") int userCount,
-            @RequestParam(defaultValue = "50") int stockCount,
-            @RequestParam(defaultValue = "999") Long couponId) {
+            @RequestParam(name = "userCount", defaultValue = "1000") int userCount,
+            @RequestParam(name = "stockCount", defaultValue = "50") int stockCount,
+            @RequestParam(name = "couponId", defaultValue = "999") Long couponId) {
         
         logger.info("开始秒杀压力测试: 用户数={}, 库存={}, 优惠券ID={}", userCount, stockCount, couponId);
         
@@ -108,9 +108,28 @@ public class SeckillTestController {
             latch.await();
             executor.shutdown();
             
+            // 5. 等待 MQ 消费完成（最多等待 10 秒）
+            logger.info("等待 MQ 消费完成...");
+            int waitCount = 0;
+            while (waitCount < 20) {
+                Thread.sleep(500);
+                String currentRedisStock = stringRedisTemplate.opsForValue().get(SECKILL_STOCK_KEY_PREFIX + couponId);
+                Coupon currentCoupon = couponMapper.selectById(couponId);
+                int currentDbStock = currentCoupon != null ? currentCoupon.getRemainingStock() : -1;
+                
+                if (currentRedisStock != null && Integer.parseInt(currentRedisStock) == currentDbStock) {
+                    logger.info("MQ 消费完成，Redis={}, DB={}", currentRedisStock, currentDbStock);
+                    break;
+                }
+                waitCount++;
+            }
+            if (waitCount >= 20) {
+                logger.warn("等待 MQ 消费超时");
+            }
+            
             long duration = System.currentTimeMillis() - startTime;
             
-            // 5. 验证结果
+            // 6. 验证结果
             Coupon finalCoupon = couponMapper.selectById(couponId);
             int finalStock = finalCoupon != null ? finalCoupon.getRemainingStock() : -1;
             String redisStock = stringRedisTemplate.opsForValue().get(SECKILL_STOCK_KEY_PREFIX + couponId);
@@ -186,6 +205,7 @@ public class SeckillTestController {
         coupon.setStartTime(LocalDateTime.now().minusMinutes(1));
         coupon.setEndTime(LocalDateTime.now().plusHours(1));
         coupon.setShopId(1L);
+        coupon.setDiscountAmount(new BigDecimal("5.00"));
         coupon.touchForCreate();
         couponMapper.insert(coupon);
         
