@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
  * 用于测试秒杀功能在高并发场景下的表现
  */
 @RestController
-@RequestMapping("/test")
+@RequestMapping("/api/stress-test")
 public class SeckillTestController {
     
     private static final Logger logger = LoggerFactory.getLogger(SeckillTestController.class);
