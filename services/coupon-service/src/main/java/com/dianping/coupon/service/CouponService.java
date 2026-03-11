@@ -174,6 +174,8 @@ public class CouponService {
         if (coupon == null) {
             throw new BusinessException("coupon not found");
         }
+        
+        // 执行退款逻辑
         BigDecimal amount = purchase.getAmount() == null ? BigDecimal.ZERO : purchase.getAmount();
         if (amount.compareTo(BigDecimal.ZERO) > 0) {
             userAuthPort.recharge(userId, amount);
@@ -182,10 +184,28 @@ public class CouponService {
         purchase.setRefundReason(reason.trim());
         purchase.setRefundedAt(LocalDateTime.now());
         couponPurchaseMapper.updateById(purchase);
+        
+        // 秒杀优惠券特殊处理：恢复库存并清除Redis购买标记
         if (TYPE_SECKILL.equals(coupon.getType())) {
+            // 1. 恢复数据库库存
             coupon.setRemainingStock((coupon.getRemainingStock() == null ? 0 : coupon.getRemainingStock()) + 1);
             coupon.touchForUpdate();
             couponMapper.updateById(coupon);
+            
+            // 2. 清除Redis用户购买标记，允许用户重新购买
+            String userKey = SECKILL_USER_KEY_PREFIX + coupon.getId() + ":" + userId;
+            stringRedisTemplate.delete(userKey);
+            
+            // 3. 恢复Redis库存
+            String stockKey = SECKILL_STOCK_KEY_PREFIX + coupon.getId();
+            stringRedisTemplate.opsForValue().increment(stockKey);
+            
+            // 4. 清除分布式锁（如果存在）
+            String lockKey = "dp:seckill:lock:v2:" + coupon.getId() + ":" + userId;
+            stringRedisTemplate.delete(lockKey);
+            // 兼容旧版锁
+            String oldLockKey = "dp:seckill:lock:" + coupon.getId() + ":" + userId;
+            stringRedisTemplate.delete(oldLockKey);
         }
         return purchase;
     }
