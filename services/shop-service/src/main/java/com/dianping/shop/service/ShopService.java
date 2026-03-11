@@ -141,6 +141,51 @@ public class ShopService {
                .orderByDesc(Shop::getCreatedAt);
         return shopMapper.selectList(wrapper);
     }
+    
+    /**
+     * 根据城市获取店铺列表（供推荐服务使用）
+     */
+    public List<com.dianping.common.dto.ShopDTO> listByCity(String city) {
+        List<Shop> shops = list(city, null);
+        if (CollectionUtils.isEmpty(shops)) {
+            return new ArrayList<>();
+        }
+        
+        return shops.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * 根据ID获取店铺DTO（供推荐服务使用）
+     */
+    public com.dianping.common.dto.ShopDTO getShopById(Long id) {
+        Shop shop = getById(id);
+        if (shop == null) {
+            return null;
+        }
+        return convertToDTO(shop);
+    }
+    
+    /**
+     * 转换为DTO
+     */
+    private com.dianping.common.dto.ShopDTO convertToDTO(Shop shop) {
+        com.dianping.common.dto.ShopDTO dto = new com.dianping.common.dto.ShopDTO();
+        dto.setId(shop.getId());
+        dto.setName(shop.getName());
+        dto.setCategory(shop.getCategory());
+        dto.setCity(shop.getCity());
+        dto.setAddress(shop.getAddress());
+        dto.setLongitude(shop.getLongitude());
+        dto.setLatitude(shop.getLatitude());
+        dto.setImages(shop.getImages());
+        dto.setStatus(shop.getStatus());
+        dto.setMerchantId(shop.getMerchantId());
+        dto.setRating(shop.getRating());
+        dto.setTags(shop.getTags());
+        return dto;
+    }
 
     public Shop update(Long id, Shop updateData) {
         Shop shop = shopMapper.selectById(id);
