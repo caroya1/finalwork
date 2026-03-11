@@ -1,7 +1,7 @@
 <template>
   <section class="hero">
     <div class="hero-card">
-      <h2>推荐结果</h2>
+      <h2>🔥 热门推荐</h2>
       <div class="list">
         <RouterLink v-for="shop in recommendations" :key="shop.id" class="list-item list-item-link" :to="`/shops/${shop.id}`">
           <strong>{{ shop.name }}</strong>
@@ -11,8 +11,11 @@
             <span v-if="shop.rating" class="tag">{{ shop.rating }}分</span>
           </div>
         </RouterLink>
-        <div v-if="recommendations.length === 0" class="list-item">
-          暂无推荐，请在搜索栏选择智能推荐后输入场景。
+        <div v-if="recommendations.length === 0 && !recLoading" class="list-item">
+          暂无推荐数据
+        </div>
+        <div v-if="recLoading" class="list-item">
+          加载中...
         </div>
       </div>
       <div v-if="recMessage" class="rec-message">{{ recMessage }}</div>
@@ -72,6 +75,7 @@ const router = useRouter();
 
 const recommendations = ref([]);
 const recMessage = ref("");
+const recLoading = ref(false);
 
 const categories = ref([
   { icon: "🍜", label: "美食", desc: "今日爆款", query: "美食" },
@@ -85,17 +89,17 @@ const feeds = ref([]);
 
 const loadRecommendations = async (scene) => {
   recMessage.value = "";
+  recLoading.value = true;
   const userId = localStorage.getItem("dp_user_id");
-  if (!userId) {
-    recMessage.value = "请先登录后获取个性化推荐";
-    return;
-  }
   const city = localStorage.getItem("dp_city") || "上海";
+  
+  // 构建请求参数，未登录用户使用默认ID 0
   const payload = {
-    userId: Number(userId),
+    userId: userId ? Number(userId) : 0,
     city: city,
     scene: scene || null
   };
+  
   try {
     const response = await fetchRecommendations(payload);
     if (response.success) {
@@ -106,8 +110,11 @@ const loadRecommendations = async (scene) => {
     } else {
       recMessage.value = response.message || "获取推荐失败";
     }
-  } catch {
+  } catch (error) {
+    console.error("获取推荐失败:", error);
     recMessage.value = "获取推荐失败，请稍后重试";
+  } finally {
+    recLoading.value = false;
   }
 };
 
@@ -160,6 +167,7 @@ const handleSearch = (event) => {
 
 onMounted(() => {
   loadPosts("");
+  loadRecommendations(""); // 首页自动加载热门推荐
   window.addEventListener("dp-search", handleSearch);
 });
 
