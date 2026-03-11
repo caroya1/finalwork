@@ -226,21 +226,26 @@ public class CouponService {
         return purchase;
     }
 
+    /**
+     * @deprecated 已迁移到 SeckillOrderHandler.handle 方法
+     * 该方法保留了旧版逻辑，但建议直接使用 SeckillOrderHandler
+     */
+    @Deprecated
     public void handleSeckillOrder(Long couponId, Long userId) {
         String lockKey = "dp:seckill:lock:" + couponId + ":" + userId;
         RLock lock = redissonClient.getLock(lockKey);
         boolean locked = false;
         try {
-            locked = lock.tryLock(5, 10, TimeUnit.SECONDS);
+            locked = lock.tryLock(5, 30, TimeUnit.SECONDS);
             if (!locked) {
-                throw new BusinessException("seckill busy");
+                throw new BusinessException("活动太火爆了，请稍后重试");
             }
             Coupon coupon = couponMapper.selectById(couponId);
             if (coupon == null) {
-                throw new BusinessException("coupon not found");
+                throw new BusinessException("优惠券不存在");
             }
             if (coupon.getRemainingStock() == null || coupon.getRemainingStock() <= 0) {
-                throw new BusinessException("coupon sold out");
+                throw new BusinessException("优惠券已售罄");
             }
             CouponPurchase existing = couponPurchaseMapper.selectOne(new LambdaQueryWrapper<CouponPurchase>()
                     .eq(CouponPurchase::getCouponId, couponId)
@@ -271,10 +276,17 @@ public class CouponService {
             }
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            throw new BusinessException("seckill interrupted");
+            throw new BusinessException("操作被中断，请重试");
         } finally {
-            if (locked && lock.isHeldByCurrentThread()) {
-                lock.unlock();
+            // 优化锁释放逻辑
+            if (locked) {
+                try {
+                    if (lock.isHeldByCurrentThread()) {
+                        lock.unlock();
+                    }
+                } catch (Exception e) {
+                    // 忽略解锁异常
+                }
             }
         }
     }
