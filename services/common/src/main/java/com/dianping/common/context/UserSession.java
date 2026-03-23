@@ -5,6 +5,10 @@ public class UserSession {
     private String username;
     private String role;
     private String city;
+    private Long merchantId; // 商户ID（仅商户角色有）
+
+    public UserSession() {
+    }
 
     public UserSession(Long id, String username, String role, String city) {
         this.id = id;
@@ -43,5 +47,25 @@ public class UserSession {
 
     public void setCity(String city) {
         this.city = city;
+    }
+
+    public Long getMerchantId() {
+        return merchantId;
+    }
+
+    public void setMerchantId(Long merchantId) {
+        this.merchantId = merchantId;
+    }
+
+    public boolean isAdmin() {
+        return "ADMIN".equals(role) || "SUPER_ADMIN".equals(role);
+    }
+
+    public boolean isMerchant() {
+        return "MERCHANT".equals(role);
+    }
+
+    public boolean isSuperAdmin() {
+        return "SUPER_ADMIN".equals(role);
     }
 }

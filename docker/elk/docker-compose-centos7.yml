@@ -1,0 +1,73 @@
+# CentOS 7 兼容版本
+# 注意：CentOS 7需要安装 Docker 和 Docker Compose
+# 安装命令：
+#   yum install -y docker
+#   systemctl start docker
+#   systemctl enable docker
+#   curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+#   chmod +x /usr/local/bin/docker-compose
+
+version: '3.3'
+
+services:
+  elasticsearch:
+    image: elasticsearch:7.17.15
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - elk_network
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200/_cluster/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  logstash:
+    image: logstash:7.17.15
+    container_name: logstash
+    environment:
+      - "LS_JAVA_OPTS=-Xms256m -Xmx256m"
+    ports:
+      - "5000:5000/tcp"
+      - "5044:5044"
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    networks:
+      - elk_network
+    depends_on:
+      - elasticsearch
+    restart: always
+
+  kibana:
+    image: kibana:7.17.15
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+      - "5601:5601"
+    networks:
+      - elk_network
+    depends_on:
+      - elasticsearch
+    restart: always
+
+volumes:
+  es_data:
+    driver: local
+
+networks:
+  elk_network:
+    driver: bridge

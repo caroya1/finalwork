@@ -6,12 +6,14 @@ import com.dianping.user.entity.User;
 import com.dianping.user.service.UserService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dianping.user.mapper.UserMapper;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/users")
+@PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
 public class AdminUserController {
     private final UserService userService;
     private final UserMapper userMapper;

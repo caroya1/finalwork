@@ -5,12 +5,14 @@ import com.dianping.common.exception.BusinessException;
 import com.dianping.merchant.entity.Merchant;
 import com.dianping.merchant.enums.MerchantStatus;
 import com.dianping.merchant.service.MerchantService;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/merchants")
+@PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
 public class AdminMerchantController {
     private final MerchantService merchantService;
 

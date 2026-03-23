@@ -5,12 +5,14 @@ import com.dianping.common.exception.BusinessException;
 import com.dianping.post.entity.Post;
 import com.dianping.post.mapper.PostMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/posts")
+@PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
 public class AdminPostController {
     private final PostMapper postMapper;
 

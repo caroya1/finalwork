@@ -17,4 +17,19 @@ public final class UserContext {
     public static void clear() {
         HOLDER.remove();
     }
+
+    public static Long getUserId() {
+        UserSession session = get();
+        return session != null ? session.getId() : null;
+    }
+
+    public static String getRole() {
+        UserSession session = get();
+        return session != null ? session.getRole() : null;
+    }
+
+    public static Long getMerchantId() {
+        UserSession session = get();
+        return session != null ? session.getMerchantId() : null;
+    }
 }

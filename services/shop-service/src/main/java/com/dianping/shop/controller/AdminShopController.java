@@ -6,12 +6,14 @@ import com.dianping.shop.entity.Shop;
 import com.dianping.shop.service.ShopService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dianping.shop.mapper.ShopMapper;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/shops")
+@PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
 public class AdminShopController {
     private final ShopService shopService;
     private final ShopMapper shopMapper;
