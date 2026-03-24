@@ -10,7 +10,8 @@ import com.dianping.user.entity.User;
 import com.dianping.user.entity.UserPrivacySettings;
 import com.dianping.user.service.UserPrivacyService;
 import com.dianping.user.service.UserService;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -22,13 +23,14 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/admin/permissions")
 @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
-@Slf4j
 public class AdminPermissionController {
+
+    private static final Logger log = LoggerFactory.getLogger(AdminPermissionController.class);
 
     @Autowired
     private UserService userService;
     
-    @Autowired
+    @Autowired(required = false)
     private PermissionCacheService permissionCacheService;
     
     @Autowired
@@ -69,7 +71,9 @@ public class AdminPermissionController {
         userService.updateById(targetUser);
         
         // 清除权限缓存（立即失效）
-        permissionCacheService.evictUserPermissions(userId);
+        if (permissionCacheService != null) {
+            permissionCacheService.evictUserPermissions(userId);
+        }
         
         log.info("用户角色已变更: operator={}, userId={}, oldRole={}, newRole={}, reason={}", 
             currentUser.getId(), userId, oldRole, newRole, reason);
@@ -98,6 +102,10 @@ public class AdminPermissionController {
     @PostMapping("/cache/evict")
     public ApiResponse<String> evictPermissionCache(
             @RequestParam(required = false) Long userId) {
+        
+        if (permissionCacheService == null) {
+            return ApiResponse.ok("权限缓存服务未启用");
+        }
         
         if (userId != null) {
             permissionCacheService.evictUserPermissions(userId);

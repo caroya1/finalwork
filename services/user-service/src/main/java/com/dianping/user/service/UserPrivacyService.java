@@ -3,7 +3,8 @@ package com.dianping.user.service;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dianping.user.entity.UserPrivacySettings;
 import com.dianping.user.mapper.UserPrivacySettingsMapper;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -15,8 +16,9 @@ import java.util.concurrent.TimeUnit;
  * 用户隐私设置服务
  */
 @Service
-@Slf4j
 public class UserPrivacyService extends ServiceImpl<UserPrivacySettingsMapper, UserPrivacySettings> {
+
+    private static final Logger log = LoggerFactory.getLogger(UserPrivacyService.class);
 
     @Autowired
     private UserPrivacySettingsMapper privacyMapper;

@@ -67,12 +67,9 @@ public class UserController {
         if (user == null) {
             return ApiResponse.fail("user not found");
         }
-        CompletableFuture<List<PostSummary>> postsFuture = CompletableFuture.supplyAsync(
-                () -> postPort.listSummariesByUser(id), appTaskExecutor);
-        CompletableFuture<List<UserCouponView>> couponsFuture = CompletableFuture.supplyAsync(
-                () -> couponPort.listByUser(id), appTaskExecutor);
-        List<PostSummary> posts = postsFuture.join();
-        List<UserCouponView> coupons = couponsFuture.join();
+        // 同步调用，避免 SecurityContext 在异步线程中丢失
+        List<PostSummary> posts = postPort.listSummariesByUser(id);
+        List<UserCouponView> coupons = couponPort.listByUser(id);
         UserProfileResponse response = new UserProfileResponse(
                 user.getId(),
                 user.getUsername(),

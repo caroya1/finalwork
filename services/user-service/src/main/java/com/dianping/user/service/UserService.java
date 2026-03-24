@@ -70,6 +70,14 @@ public class UserService {
         return userMapper.selectById(userId);
     }
 
+    public User getById(Long userId) {
+        return userMapper.selectById(userId);
+    }
+
+    public void updateById(User user) {
+        userMapper.updateById(user);
+    }
+
     public UserSummary getSummary(Long userId) {
         User user = findById(userId);
         if (user == null) {
