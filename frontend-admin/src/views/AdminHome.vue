@@ -342,27 +342,154 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* ========== Stats Grid ========== */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+  margin-top: var(--space-5);
 }
 
 .stat-item {
-  background: #fff;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 10px;
+  background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  transition: all var(--transition-fast);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-item::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+  background: var(--brand-gradient);
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--brand-primary);
 }
 
 .stat-label {
-  font-size: 12px;
-  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: var(--space-1);
 }
 
 .stat-value {
-  font-size: 18px;
-  font-weight: 700;
-  margin-top: 4px;
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  color: var(--brand-primary);
+}
+
+.stat-value.empty {
+  color: var(--text-tertiary);
+}
+
+/* ========== Hero Card Enhancements ========== */
+.hero-card {
+  position: relative;
+}
+
+.hero-card h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.hero-card h2::before {
+  content: '';
+  width: 4px;
+  height: 20px;
+  background: var(--brand-gradient);
+  border-radius: var(--radius-full);
+}
+
+/* ========== Form Enhancements ========== */
+.form-grid input[type="number"] {
+  appearance: textfield;
+}
+
+.form-grid input[type="number"]::-webkit-outer-spin-button,
+.form-grid input[type="number"]::-webkit-inner-spin-button {
+  appearance: none;
+  margin: 0;
+}
+
+.form-grid span {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  padding: var(--space-2) 0;
+}
+
+.form-grid .cta {
+  align-self: flex-start;
+}
+
+/* ========== List Enhancements ========== */
+.list-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.list-item strong {
+  font-size: var(--text-base);
+  color: var(--text-primary);
+  font-weight: var(--font-semibold);
+}
+
+.list-item .tag {
+  font-size: var(--text-xs);
+}
+
+.list-item button {
+  font-size: var(--text-xs);
+  padding: var(--space-1) var(--space-3);
+}
+
+/* ========== Panel Section Headers ========== */
+.panel h2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: var(--space-4);
+}
+
+.panel h2::before {
+  content: '';
+  width: 4px;
+  height: 18px;
+  background: var(--brand-gradient);
+  border-radius: var(--radius-full);
+}
+
+/* ========== Responsive ========== */
+@media (max-width: 1024px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stat-value {
+    font-size: var(--text-2xl);
+  }
 }
 </style>

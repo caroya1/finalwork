@@ -112,15 +112,16 @@
         <div v-if="!isLoggedIn" class="hint">登录后可评论</div>
       </section>
     </aside>
-
-    <div v-else class="hero-card">
-      <p>帖子不存在或已被删除</p>
-    </div>
   </section>
   
-  <div v-else class="loading-state">
+  <div v-else-if="loading" class="loading-state">
     <span class="loading-spinner"></span>
     <p>加载中...</p>
+  </div>
+  
+  <div v-else class="empty-state">
+    <span class="empty-icon-large">📝</span>
+    <p>帖子不存在或已被删除</p>
   </div>
 </template>
 
@@ -134,6 +135,7 @@ import { getShopDetail } from "../api/shop";
 const route = useRoute();
 const router = useRouter();
 const post = ref(null);
+const loading = ref(true);
 const authorUsername = ref("");
 const likeCount = ref(0);
 const liked = ref(false);
@@ -173,30 +175,35 @@ const enrichShopDetail = async (shopId, baseShop) => {
 };
 
 const loadPost = async () => {
-  const response = await getPostDetail(route.params.id);
-  if (response.success) {
-    const detail = response.data || {};
-    post.value = detail.post;
-    authorUsername.value = detail.authorUsername || "";
-    likeCount.value = detail.likeCount;
-    liked.value = detail.liked;
-    followed.value = !!detail.followed;
-    comments.value = detail.comments || [];
-    shop.value = detail.shop || null;
-    if (post.value && post.value.shopId != null) {
-      const needsFallback = !shop.value || shop.value.id == null;
-      const needsEnrich = shop.value && (!shop.value.name || !shop.value.city || !shop.value.address);
-      if (needsFallback) {
-        shop.value = await enrichShopDetail(post.value.shopId, { id: post.value.shopId });
-      } else if (needsEnrich) {
-        shop.value = await enrichShopDetail(post.value.shopId, shop.value);
+  loading.value = true;
+  try {
+    const response = await getPostDetail(route.params.id);
+    if (response.success) {
+      const detail = response.data || {};
+      post.value = detail.post;
+      authorUsername.value = detail.authorUsername || "";
+      likeCount.value = detail.likeCount;
+      liked.value = detail.liked;
+      followed.value = !!detail.followed;
+      comments.value = detail.comments || [];
+      shop.value = detail.shop || null;
+      if (post.value && post.value.shopId != null) {
+        const needsFallback = !shop.value || shop.value.id == null;
+        const needsEnrich = shop.value && (!shop.value.name || !shop.value.city || !shop.value.address);
+        if (needsFallback) {
+          shop.value = await enrichShopDetail(post.value.shopId, { id: post.value.shopId });
+        } else if (needsEnrich) {
+          shop.value = await enrichShopDetail(post.value.shopId, shop.value);
+        }
       }
+      tagList.value = post.value.tags ? post.value.tags.split(",") : [];
+      const userId = localStorage.getItem("dp_user_id");
+      isSelf.value = !!userId && post.value && String(userId) === String(post.value.userId);
+    } else {
+      actionMessage.value = response.message || "加载失败";
     }
-    tagList.value = post.value.tags ? post.value.tags.split(",") : [];
-    const userId = localStorage.getItem("dp_user_id");
-    isSelf.value = !!userId && post.value && String(userId) === String(post.value.userId);
-  } else {
-    actionMessage.value = response.message || "加载失败";
+  } finally {
+    loading.value = false;
   }
 };
 
