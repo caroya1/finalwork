@@ -217,12 +217,20 @@ const activeShopId = ref("");
 const orderStatusFilter = ref("");
 
 const loadShops = async () => {
-  const response = await listMyShops();
-  if (response.success) {
-    shopList.value = response.data || [];
-    if (!activeShopId.value && shopList.value.length > 0) {
-      activeShopId.value = String(shopList.value[0].id);
+  try {
+    const response = await listMyShops();
+    console.log("loadShops response:", response);
+    if (response.success) {
+      shopList.value = response.data || [];
+      if (!activeShopId.value && shopList.value.length > 0) {
+        activeShopId.value = String(shopList.value[0].id);
+      }
+    } else {
+      dashboardMessage.value = response.message || "获取门店列表失败";
     }
+  } catch (error) {
+    console.error("loadShops error:", error);
+    dashboardMessage.value = "获取门店列表失败: " + (error.message || "网络错误");
   }
 };
 

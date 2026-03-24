@@ -88,7 +88,12 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
             }
             final Long userId = userIdValue;
             final String role = claims.get("role", String.class);
-            final Long merchantId = claims.get("merchantId", Long.class);
+            // 商户Token使用sub作为merchantId，没有单独的merchantId claim
+            Long merchantIdValue = claims.get("merchantId", Long.class);
+            if (merchantIdValue == null && "merchant".equals(role)) {
+                merchantIdValue = userId;
+            }
+            final Long merchantId = merchantIdValue;
             final String username = claims.get("username", String.class);
 
             // 4. 检查Token黑名单（用户登出）
