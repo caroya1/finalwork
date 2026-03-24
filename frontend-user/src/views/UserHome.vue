@@ -218,37 +218,35 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-/* 推荐区域样式 */
 .recommend-section {
-  padding: 20px 16px;
+  padding: var(--space-lg) var(--space-md);
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  border-radius: 16px;
-  margin: 16px;
+  border-radius: var(--radius-lg);
+  margin: var(--space-md);
 }
 
 .recommend-header {
-  margin-bottom: 16px;
+  margin-bottom: var(--space-md);
 }
 
 .recommend-title {
-  font-size: 20px;
+  font-size: var(--text-xl);
   font-weight: 700;
   color: #333;
-  margin: 0 0 4px 0;
+  margin: 0 0 var(--space-xs) 0;
 }
 
 .recommend-subtitle {
-  font-size: 14px;
+  font-size: var(--text-sm);
   color: #666;
   margin: 0;
 }
 
-/* 卡片容器 - 横向滚动 */
 .recommend-cards {
   display: flex;
-  gap: 16px;
+  gap: var(--space-md);
   overflow-x: auto;
-  padding-bottom: 8px;
+  padding-bottom: var(--space-sm);
   scrollbar-width: thin;
   scrollbar-color: #ccc transparent;
 }
@@ -266,16 +264,15 @@ onBeforeUnmount(() => {
   border-radius: 3px;
 }
 
-/* 单个店铺卡片 */
 .shop-card {
   flex: 0 0 280px;
   background: #fff;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   text-decoration: none;
   color: inherit;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
 }
 
 .shop-card:hover {
@@ -283,7 +280,15 @@ onBeforeUnmount(() => {
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
 }
 
-/* 店铺图片区域 */
+.shop-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.shop-card:active {
+  transform: translateY(-2px);
+}
+
 .shop-image {
   position: relative;
   width: 100%;
@@ -300,30 +305,29 @@ onBeforeUnmount(() => {
 
 .category-tag {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: var(--space-md);
+  left: var(--space-md);
   background: rgba(255, 255, 255, 0.95);
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
+  padding: var(--space-xs) var(--space-md);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
   color: #ff6b6b;
   font-weight: 600;
 }
 
-/* 店铺信息区域 */
 .shop-info {
-  padding: 16px;
+  padding: var(--space-md);
 }
 
 .shop-name-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-sm);
 }
 
 .shop-name {
-  font-size: 16px;
+  font-size: var(--text-base);
   font-weight: 600;
   color: #333;
   margin: 0;
@@ -336,31 +340,29 @@ onBeforeUnmount(() => {
 .rating-badge {
   background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
   color: #fff;
-  padding: 4px 10px;
-  border-radius: 20px;
+  padding: var(--space-xs) 10px;
+  border-radius: var(--radius-full);
   font-size: 13px;
   font-weight: 600;
-  margin-left: 8px;
+  margin-left: var(--space-sm);
   flex-shrink: 0;
 }
 
-/* 店铺标签 */
 .shop-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-md);
 }
 
 .shop-tag {
   background: #f5f5f5;
   color: #666;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: var(--space-xs) 10px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-xs);
 }
 
-/* 店铺地址 */
 .shop-address {
   display: flex;
   align-items: center;
@@ -369,7 +371,7 @@ onBeforeUnmount(() => {
 }
 
 .address-icon {
-  margin-right: 4px;
+  margin-right: var(--space-xs);
 }
 
 .address-text {
@@ -378,7 +380,6 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-/* 空状态 */
 .empty-recommend {
   width: 100%;
   text-align: center;
@@ -387,23 +388,28 @@ onBeforeUnmount(() => {
 }
 
 .rec-message {
-  margin-top: 12px;
-  padding: 12px;
+  margin-top: var(--space-md);
+  padding: var(--space-md);
   background: #fff3cd;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: #856404;
-  font-size: 14px;
+  font-size: var(--text-sm);
 }
 
-/* 旧样式兼容 */
 .list-item-link {
   display: block;
   text-decoration: none;
   color: inherit;
-  transition: border-color 0.2s;
+  transition: border-color var(--transition-base);
   cursor: pointer;
 }
+
 .list-item-link:hover {
   border-color: var(--accent);
+}
+
+.list-item-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 </style>
