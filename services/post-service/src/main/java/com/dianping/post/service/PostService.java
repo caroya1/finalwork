@@ -3,7 +3,7 @@ package com.dianping.post.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dianping.common.dto.UserSummary;
 import com.dianping.common.exception.BusinessException;
-import com.dianping.common.port.UserPort;
+import com.dianping.post.client.UserClient;
 import com.dianping.post.dto.CommentDTO;
 import com.dianping.post.dto.PostCreateRequest;
 import com.dianping.post.dto.PostDetailResponse;
@@ -14,7 +14,6 @@ import com.dianping.post.mapper.PostMapper;
 import com.dianping.common.dto.ShopSummary;
 import com.dianping.common.dto.PostSummary;
 import com.dianping.common.port.ShopPort;
-import com.dianping.common.port.UserFollowPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,18 +39,16 @@ public class PostService {
     private final PostLikeService postLikeService;
     private final PostCommentMapper postCommentMapper;
     private final ShopPort shopPort;
-    private final UserPort userPort;
+    private final UserClient userClient;
     private final Executor appTaskExecutor;
-    private final UserFollowPort userFollowPort;
     private final RedisTemplate<String, Object> redisTemplate;
     private final long cacheTtlSeconds;
     private final com.dianping.common.util.SensitiveWordFilter sensitiveWordFilter;
 
     public PostService(PostMapper postMapper, PostLikeService postLikeService,
                        PostCommentMapper postCommentMapper, ShopPort shopPort,
-                       UserPort userPort,
+                       UserClient userClient,
                        @Qualifier("appTaskExecutor") Executor appTaskExecutor,
-                       UserFollowPort userFollowPort,
                        RedisTemplate<String, Object> redisTemplate,
                        @Value("${app.post.cache-ttl-seconds:300}") long cacheTtlSeconds,
                        com.dianping.common.util.SensitiveWordFilter sensitiveWordFilter) {
@@ -59,9 +56,8 @@ public class PostService {
         this.postLikeService = postLikeService;
         this.postCommentMapper = postCommentMapper;
         this.shopPort = shopPort;
-        this.userPort = userPort;
+        this.userClient = userClient;
         this.appTaskExecutor = appTaskExecutor;
-        this.userFollowPort = userFollowPort;
         this.redisTemplate = redisTemplate;
         this.cacheTtlSeconds = cacheTtlSeconds;
         this.sensitiveWordFilter = sensitiveWordFilter;
@@ -145,7 +141,7 @@ public class PostService {
             if (userId == null || authorId == null) {
                 return false;
             }
-            return userFollowPort.isFollowing(userId, authorId);
+            return userClient.isFollowing(userId, authorId);
         }, appTaskExecutor);
         CompletableFuture<ShopSummary> shopFuture = CompletableFuture.supplyAsync(() -> {
             if (post.getShopId() == null) {
@@ -161,7 +157,7 @@ public class PostService {
             if (authorId == null) {
                 return null;
             }
-            UserSummary user = userPort.getSummary(authorId);
+            UserSummary user = userClient.getSummary(authorId);
             return user != null ? user.getUsername() : null;
         }, appTaskExecutor);
         
@@ -190,7 +186,7 @@ public class PostService {
         Map<Long, String> usernameMap = new java.util.HashMap<>();
         for (Long uid : userIds) {
             try {
-                UserSummary user = userPort.getSummary(uid);
+                UserSummary user = userClient.getSummary(uid);
                 if (user != null && user.getUsername() != null) {
                     usernameMap.put(uid, user.getUsername());
                 }

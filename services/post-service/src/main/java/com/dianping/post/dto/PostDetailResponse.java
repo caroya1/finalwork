@@ -1,8 +1,7 @@
 package com.dianping.post.dto;
 
-import com.dianping.post.entity.Post;
 import com.dianping.common.dto.ShopSummary;
-
+import com.dianping.post.entity.Post;
 import java.util.List;
 
 public class PostDetailResponse {
