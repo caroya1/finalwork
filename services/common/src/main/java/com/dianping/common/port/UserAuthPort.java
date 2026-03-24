@@ -10,7 +10,5 @@ public interface UserAuthPort {
 
     UserSummary getSummary(Long userId);
 
-    void deductBalance(Long userId, BigDecimal amount);
-
     void recharge(Long userId, BigDecimal amount);
 }
