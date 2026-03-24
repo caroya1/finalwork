@@ -8,6 +8,7 @@ import com.dianping.auth.dto.RefreshRequest;
 import com.dianping.auth.dto.TokenPairResponse;
 import com.dianping.auth.service.AuthService;
 import com.dianping.common.api.ApiResponse;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,13 +25,21 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ApiResponse<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ApiResponse.ok(authService.login(request));
+    public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
+        LoginResponse response = authService.login(request);
+        return ResponseEntity.ok()
+                .header("Authorization", "Bearer " + response.getToken())
+                .header("X-Refresh-Token", response.getRefreshToken())
+                .body(ApiResponse.ok(response));
     }
 
     @PostMapping("/admin/login")
-    public ApiResponse<LoginResponse> adminLogin(@Valid @RequestBody AdminLoginRequest request) {
-        return ApiResponse.ok(authService.adminLogin(request.getUsername(), request.getPassword()));
+    public ResponseEntity<ApiResponse<LoginResponse>> adminLogin(@Valid @RequestBody AdminLoginRequest request) {
+        LoginResponse response = authService.adminLogin(request.getUsername(), request.getPassword());
+        return ResponseEntity.ok()
+                .header("Authorization", "Bearer " + response.getToken())
+                .header("X-Refresh-Token", response.getRefreshToken())
+                .body(ApiResponse.ok(response));
     }
 
     @PostMapping("/refresh")

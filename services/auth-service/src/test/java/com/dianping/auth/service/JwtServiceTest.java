@@ -40,9 +40,10 @@ class JwtServiceTest {
         // Given
         Long userId = 1L;
         String username = "testuser";
+        String role = "USER";
 
         // When
-        String token = jwtService.generateAccessToken(userId, username);
+        String token = jwtService.generateAccessToken(userId, username, role);
 
         // Then
         assertNotNull(token);
@@ -51,6 +52,7 @@ class JwtServiceTest {
         Claims claims = jwtService.parseClaims(token);
         assertEquals(userId.toString(), claims.getSubject());
         assertEquals(username, claims.get("username"));
+        assertEquals(role, claims.get("role"));
         assertEquals("access", claims.get("type"));
         
         verify(valueOperations).set(anyString(), anyString(), anyLong(), any());
@@ -77,7 +79,7 @@ class JwtServiceTest {
     void parseUserId_Success() {
         // Given
         Long userId = 1L;
-        String token = jwtService.generateAccessToken(userId, "testuser");
+        String token = jwtService.generateAccessToken(userId, "testuser", "USER");
 
         // When
         Long parsedUserId = jwtService.parseUserId(token);
@@ -89,7 +91,7 @@ class JwtServiceTest {
     @Test
     void getTokenType_AccessToken() {
         // Given
-        String token = jwtService.generateAccessToken(1L, "testuser");
+        String token = jwtService.generateAccessToken(1L, "testuser", "USER");
 
         // When
         String type = jwtService.getTokenType(token);
@@ -125,7 +127,7 @@ class JwtServiceTest {
     @Test
     void getRemainingTime_ValidToken() {
         // Given
-        String token = jwtService.generateAccessToken(1L, "testuser");
+        String token = jwtService.generateAccessToken(1L, "testuser", "USER");
 
         // When
         long remaining = jwtService.getRemainingTime(token);

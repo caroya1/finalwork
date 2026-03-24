@@ -59,7 +59,7 @@ public class AuthService {
         if (!passwordService.matches(password, admin.getPasswordHash())) {
             throw new BusinessException("invalid username or password");
         }
-        String token = jwtService.generateAccessToken(admin.getId(), admin.getUsername());
+        String token = jwtService.generateAccessToken(admin.getId(), admin.getUsername(), admin.getRole());
         String refreshToken = jwtService.generateRefreshToken(admin.getId(), admin.getUsername());
         Map<String, String> payload = new HashMap<>(4);
         payload.put("userId", String.valueOf(admin.getId()));
@@ -82,7 +82,7 @@ public class AuthService {
             throw new BusinessException("invalid username or password");
         }
         revokeExistingTokens(user.getId());
-        String token = jwtService.generateAccessToken(user.getId(), user.getUsername());
+        String token = jwtService.generateAccessToken(user.getId(), user.getUsername(), user.getRole());
         String refreshToken = jwtService.generateRefreshToken(user.getId(), user.getUsername());
         UserSummary summary = new UserSummary(user.getId(), user.getUsername(), user.getCity(), user.getRole(), user.getBalance());
         saveTokens(summary, token, refreshToken);
@@ -125,7 +125,9 @@ public class AuthService {
             username = user.getUsername();
         }
         revokeExistingTokens(userId);
-        String newAccess = jwtService.generateAccessToken(userId, username);
+        UserSummary userSummary = userAuthPort.getSummary(userId);
+        String role = userSummary != null ? userSummary.getRole() : null;
+        String newAccess = jwtService.generateAccessToken(userId, username, role);
         String newRefresh = jwtService.generateRefreshToken(userId, username);
         if (cached instanceof Map) {
             redisTemplate.opsForValue().set(ACCESS_TOKEN_PREFIX + newAccess, cached, accessTtlSeconds, TimeUnit.SECONDS);

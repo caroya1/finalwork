@@ -85,8 +85,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (!(cached instanceof Map)) {
                 return null;
             }
-            UserSession session = buildSession(cached, REFRESH_TOKEN_PREFIX + refreshHeader, refreshTtlSeconds);
-            String newAccess = jwtService.generateAccessToken(session.getId(), session.getUsername());
+UserSession session = buildSession(cached, REFRESH_TOKEN_PREFIX + refreshHeader, refreshTtlSeconds);
+            String newAccess = jwtService.generateAccessToken(session.getId(), session.getUsername(), session.getRole());
             String newRefresh = jwtService.generateRefreshToken(session.getId(), session.getUsername());
             redisTemplate.opsForValue().set(ACCESS_TOKEN_PREFIX + newAccess, cached, accessTtlSeconds, java.util.concurrent.TimeUnit.SECONDS);
             redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + newRefresh, cached, refreshTtlSeconds, java.util.concurrent.TimeUnit.SECONDS);

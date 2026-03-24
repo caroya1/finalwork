@@ -36,11 +36,12 @@ public class JwtService {
         this.redisTemplate = redisTemplate;
     }
 
-    public String generateAccessToken(Long userId, String username) {
+    public String generateAccessToken(Long userId, String username, String role) {
         Instant now = Instant.now();
         String token = Jwts.builder()
                 .setSubject(String.valueOf(userId))
                 .claim("username", username)
+                .claim("role", role != null ? role : "USER")
                 .claim("type", "access")
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plus(accessExpireMinutes, ChronoUnit.MINUTES)))
@@ -91,7 +92,8 @@ public class JwtService {
                 
                 if (storedToken != null && "access".equals(tokenType)) {
                     // 生成新的access token
-                    return generateAccessToken(userId, username);
+                    String role = claims.get("role", String.class);
+                    return generateAccessToken(userId, username, role);
                 }
             }
             
