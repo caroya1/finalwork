@@ -1,6 +1,12 @@
 server:
   port: 8093
 
+app:
+  jwt:
+    secret: DianpingJwtSecretKey-ChangeMe-2026
+    expire-minutes: 120
+    refresh-expire-days: 7
+
 spring:
   data:
     redis:
