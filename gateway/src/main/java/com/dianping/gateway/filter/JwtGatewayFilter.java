@@ -3,7 +3,8 @@ package com.dianping.gateway.filter;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -30,8 +31,9 @@ import java.util.UUID;
  * 统一在网关层进行JWT验证
  */
 @Component
-@Slf4j
 public class JwtGatewayFilter implements GlobalFilter, Ordered {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtGatewayFilter.class);
 
     @Value("${app.jwt.secret:DianpingJwtSecretKey2026}")
     private String jwtSecret;
@@ -67,15 +69,27 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
 
         try {
             // 3. 验证并解析Token
-            Claims claims = Jwts.parser()
+            Claims claims = Jwts.parserBuilder()
                     .setSigningKey(jwtSecret.getBytes())
+                    .build()
                     .parseClaimsJws(token)
                     .getBody();
 
-            Long userId = claims.get("userId", Long.class);
-            String role = claims.get("role", String.class);
-            Long merchantId = claims.get("merchantId", Long.class);
-            String username = claims.get("username", String.class);
+            Long userIdValue = claims.get("userId", Long.class);
+            if (userIdValue == null) {
+                String sub = claims.getSubject();
+                if (sub != null) {
+                    try {
+                        userIdValue = Long.valueOf(sub);
+                    } catch (NumberFormatException e) {
+                        // sub 不是数字，忽略
+                    }
+                }
+            }
+            final Long userId = userIdValue;
+            final String role = claims.get("role", String.class);
+            final Long merchantId = claims.get("merchantId", Long.class);
+            final String username = claims.get("username", String.class);
 
             // 4. 检查Token黑名单（用户登出）
             String blackKey = "dp:token:blacklist:" + token;
@@ -83,18 +97,26 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
                 return unauthorized(exchange, "Token已失效");
             }
 
-            // 5. 构建新的请求，添加用户Headers
+            // 5. 构建新的请求，添加用户Headers（移除前端伪造的头，添加从Token解析的真实信息）
             ServerHttpRequest mutatedRequest = request.mutate()
-                    .header("X-User-Id", userId != null ? userId.toString() : "")
-                    .header("X-User-Role", role != null ? role : "")
-                    .header("X-Merchant-Id", merchantId != null ? merchantId.toString() : "")
-                    .header("X-Username", username != null ? username : "")
-                    .header("X-Request-Id", UUID.randomUUID().toString())
+                    .headers(headers -> {
+                        headers.remove("X-User-Id");
+                        headers.remove("X-User-Role");
+                        headers.remove("X-Merchant-Id");
+                        headers.remove("X-Username");
+                        headers.remove("X-Refresh-Token");
+                        headers.set("X-User-Id", userId != null ? userId.toString() : "");
+                        headers.set("X-User-Role", role != null ? role : "");
+                        headers.set("X-Merchant-Id", merchantId != null ? merchantId.toString() : "");
+                        headers.set("X-Username", username != null ? username : "");
+                        headers.set("X-Request-Id", UUID.randomUUID().toString());
+                    })
                     .build();
 
             // 6. 记录访问日志（非查询操作）
-            if (!isQueryMethod(request.getMethodValue())) {
-                log.info("用户访问: userId={}, path={}, method={}", userId, path, request.getMethodValue());
+            String method = request.getMethod().name();
+            if (!isQueryMethod(method)) {
+                log.info("用户访问: userId={}, path={}, method={}", userId, path, method);
             }
 
             return chain.filter(exchange.mutate().request(mutatedRequest).build());
