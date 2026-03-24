@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class FeignConfig {
+public class UserFeignConfig {
     @Bean
     public PostPort postPort(PostClient client) {
         return client;

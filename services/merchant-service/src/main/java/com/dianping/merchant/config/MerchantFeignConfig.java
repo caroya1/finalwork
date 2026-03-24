@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class FeignConfig {
+public class MerchantFeignConfig {
     @Bean
     public PasswordPort passwordPort(PasswordClient client) {
         return client;

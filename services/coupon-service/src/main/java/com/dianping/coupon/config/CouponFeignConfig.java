@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-public class FeignConfig {
+public class CouponFeignConfig {
     @Bean
     public UserAuthPort userAuthPort(UserAuthClient client) {
         return client;
