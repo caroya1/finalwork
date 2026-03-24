@@ -22,13 +22,13 @@
     </div>
     <aside class="post-aside" v-if="post">
       <div class="post-header">
-        <div class="post-author">
-          <div class="author-avatar">DP</div>
-          <div>
-            <div class="author-name">用户 {{ post.userId }}</div>
-            <div class="author-meta">{{ post.city }}</div>
-          </div>
+      <div class="post-author">
+        <div class="author-avatar">DP</div>
+        <div>
+          <div class="author-name">{{ authorUsername || '用户' + post.userId }}</div>
+          <div class="author-meta">{{ post.city }}</div>
         </div>
+      </div>
         <div class="author-actions">
           <button
             class="ghost-btn"
@@ -75,7 +75,7 @@
         <div v-for="comment in comments" :key="comment.id" class="comment-item">
           <div class="comment-avatar">🙂</div>
           <div class="comment-body">
-            <div class="comment-user">用户 {{ comment.userId }}</div>
+            <div class="comment-user">{{ comment.username || '用户' + comment.userId }}</div>
             <div class="comment-content">{{ comment.content }}</div>
             <div class="comment-time">{{ formatTime(comment.createdAt) }}</div>
           </div>
@@ -112,6 +112,7 @@ import { getShopDetail } from "../api/shop";
 const route = useRoute();
 const router = useRouter();
 const post = ref(null);
+const authorUsername = ref("");
 const likeCount = ref(0);
 const liked = ref(false);
 const followed = ref(false);
@@ -154,6 +155,7 @@ const loadPost = async () => {
   if (response.success) {
     const detail = response.data || {};
     post.value = detail.post;
+    authorUsername.value = detail.authorUsername || "";
     likeCount.value = detail.likeCount;
     liked.value = detail.liked;
     followed.value = !!detail.followed;

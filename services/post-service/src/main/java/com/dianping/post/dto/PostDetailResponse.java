@@ -1,21 +1,22 @@
 package com.dianping.post.dto;
 
 import com.dianping.post.entity.Post;
-import com.dianping.post.entity.PostComment;
 import com.dianping.common.dto.ShopSummary;
 
 import java.util.List;
 
 public class PostDetailResponse {
     private Post post;
+    private String authorUsername;
     private long likeCount;
     private boolean liked;
     private boolean followed;
     private ShopSummary shop;
-    private List<PostComment> comments;
+    private List<CommentDTO> comments;
 
-    public PostDetailResponse(Post post, long likeCount, boolean liked, boolean followed, ShopSummary shop, List<PostComment> comments) {
+    public PostDetailResponse(Post post, String authorUsername, long likeCount, boolean liked, boolean followed, ShopSummary shop, List<CommentDTO> comments) {
         this.post = post;
+        this.authorUsername = authorUsername;
         this.likeCount = likeCount;
         this.liked = liked;
         this.followed = followed;
@@ -25,6 +26,10 @@ public class PostDetailResponse {
 
     public Post getPost() {
         return post;
+    }
+
+    public String getAuthorUsername() {
+        return authorUsername;
     }
 
     public long getLikeCount() {
@@ -47,7 +52,7 @@ public class PostDetailResponse {
         this.shop = shop;
     }
 
-    public List<PostComment> getComments() {
+    public List<CommentDTO> getComments() {
         return comments;
     }
 }

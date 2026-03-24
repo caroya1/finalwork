@@ -1,7 +1,10 @@
 package com.dianping.post.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.dianping.common.dto.UserSummary;
 import com.dianping.common.exception.BusinessException;
+import com.dianping.common.port.UserPort;
+import com.dianping.post.dto.CommentDTO;
 import com.dianping.post.dto.PostCreateRequest;
 import com.dianping.post.dto.PostDetailResponse;
 import com.dianping.post.entity.Post;
@@ -19,10 +22,14 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 public class PostService {
@@ -33,6 +40,7 @@ public class PostService {
     private final PostLikeService postLikeService;
     private final PostCommentMapper postCommentMapper;
     private final ShopPort shopPort;
+    private final UserPort userPort;
     private final Executor appTaskExecutor;
     private final UserFollowPort userFollowPort;
     private final RedisTemplate<String, Object> redisTemplate;
@@ -41,6 +49,7 @@ public class PostService {
 
     public PostService(PostMapper postMapper, PostLikeService postLikeService,
                        PostCommentMapper postCommentMapper, ShopPort shopPort,
+                       UserPort userPort,
                        @Qualifier("appTaskExecutor") Executor appTaskExecutor,
                        UserFollowPort userFollowPort,
                        RedisTemplate<String, Object> redisTemplate,
@@ -50,6 +59,7 @@ public class PostService {
         this.postLikeService = postLikeService;
         this.postCommentMapper = postCommentMapper;
         this.shopPort = shopPort;
+        this.userPort = userPort;
         this.appTaskExecutor = appTaskExecutor;
         this.userFollowPort = userFollowPort;
         this.redisTemplate = redisTemplate;
@@ -126,6 +136,7 @@ public class PostService {
             throw new BusinessException("post not found");
         }
         Long authorId = post.getUserId();
+        
         CompletableFuture<Long> likeCountFuture = CompletableFuture.supplyAsync(
                 () -> postLikeService.countByPostId(postId), appTaskExecutor);
         CompletableFuture<Boolean> likedFuture = CompletableFuture.supplyAsync(
@@ -146,12 +157,61 @@ public class PostService {
                 postCommentMapper.selectList(new LambdaQueryWrapper<PostComment>()
                         .eq(PostComment::getPostId, postId)
                         .orderByDesc(PostComment::getCreatedAt)), appTaskExecutor);
+        CompletableFuture<String> authorNameFuture = CompletableFuture.supplyAsync(() -> {
+            if (authorId == null) {
+                return null;
+            }
+            UserSummary user = userPort.getSummary(authorId);
+            return user != null ? user.getUsername() : null;
+        }, appTaskExecutor);
+        
         long likeCount = likeCountFuture.join();
         boolean liked = likedFuture.join();
         boolean followed = followedFuture.join();
         ShopSummary shop = shopFuture.join();
         List<PostComment> comments = commentsFuture.join();
-        return new PostDetailResponse(post, likeCount, liked, followed, shop, comments);
+        String authorUsername = authorNameFuture.join();
+        
+        List<CommentDTO> commentDTOs = enrichCommentsWithUsername(comments);
+        
+        return new PostDetailResponse(post, authorUsername, likeCount, liked, followed, shop, commentDTOs);
+    }
+    
+    private List<CommentDTO> enrichCommentsWithUsername(List<PostComment> comments) {
+        if (comments == null || comments.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        Set<Long> userIds = comments.stream()
+                .map(PostComment::getUserId)
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        
+        Map<Long, String> usernameMap = new java.util.HashMap<>();
+        for (Long uid : userIds) {
+            try {
+                UserSummary user = userPort.getSummary(uid);
+                if (user != null && user.getUsername() != null) {
+                    usernameMap.put(uid, user.getUsername());
+                }
+            } catch (Exception e) {
+                log.warn("Failed to get user summary for userId: {}", uid);
+            }
+        }
+        
+        List<CommentDTO> result = new ArrayList<>();
+        for (PostComment comment : comments) {
+            String username = usernameMap.getOrDefault(comment.getUserId(), "用户" + comment.getUserId());
+            result.add(new CommentDTO(
+                comment.getId(),
+                comment.getPostId(),
+                comment.getUserId(),
+                username,
+                comment.getContent(),
+                comment.getCreatedAt()
+            ));
+        }
+        return result;
     }
 
     public Post create(Long userId, PostCreateRequest request) {
