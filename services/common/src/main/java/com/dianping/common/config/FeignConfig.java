@@ -16,7 +16,7 @@ import org.springframework.util.StringUtils;
 @Configuration
 public class FeignConfig {
 
-    @Autowired
+    @Autowired(required = false)
     private InternalTokenService tokenService;
 
     /**
@@ -38,11 +38,13 @@ public class FeignConfig {
             }
 
             // 2. 传递内部Token（如果调用的是内部API）
-            String url = template.url();
-            if (isInternalApi(url)) {
-                String token = tokenService.getCurrentToken();
-                if (StringUtils.hasText(token)) {
-                    template.header("X-Internal-Token", token);
+            if (tokenService != null) {
+                String url = template.url();
+                if (isInternalApi(url)) {
+                    String token = tokenService.getCurrentToken();
+                    if (StringUtils.hasText(token)) {
+                        template.header("X-Internal-Token", token);
+                    }
                 }
             }
         };

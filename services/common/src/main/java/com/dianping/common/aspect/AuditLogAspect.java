@@ -6,13 +6,13 @@ import com.dianping.common.context.UserContext;
 import com.dianping.common.context.UserSession;
 import com.dianping.common.entity.AuditLogEntry;
 import com.dianping.common.service.AuditLogService;
-import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -26,8 +26,10 @@ import java.time.LocalDateTime;
  */
 @Aspect
 @Component
-@Slf4j
+@ConditionalOnProperty(prefix = "audit.log", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class AuditLogAspect {
+
+    private static final Logger log = LoggerFactory.getLogger(AuditLogAspect.class);
 
     @Autowired
     private AuditLogService auditLogService;

@@ -4,12 +4,14 @@ import com.dianping.common.annotation.DataPermission;
 import com.dianping.common.annotation.PermissionType;
 import com.dianping.common.context.UserContext;
 import com.dianping.common.context.UserSession;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Component;
@@ -25,8 +27,10 @@ import java.util.concurrent.TimeUnit;
  */
 @Aspect
 @Component
-@Slf4j
+@ConditionalOnBean(StringRedisTemplate.class)
 public class DataPermissionAspect {
+
+    private static final Logger log = LoggerFactory.getLogger(DataPermissionAspect.class);
 
     @Autowired
     private StringRedisTemplate redisTemplate;
@@ -44,9 +48,10 @@ public class DataPermissionAspect {
 
         // 1. 检查缓存
         String cacheKey = buildCacheKey(point, session, dataPermission);
-        Boolean cachedResult = (Boolean) redisTemplate.opsForValue().get(cacheKey);
+        String cachedResult = redisTemplate.opsForValue().get(cacheKey);
         if (cachedResult != null) {
-            if (!cachedResult) {
+            boolean cachedPermission = Boolean.parseBoolean(cachedResult);
+            if (!cachedPermission) {
                 throw new AccessDeniedException("无权访问此资源（缓存）");
             }
             return point.proceed();
@@ -58,7 +63,7 @@ public class DataPermissionAspect {
         // 3. 写入缓存
         redisTemplate.opsForValue().set(
             cacheKey, 
-            hasPermission, 
+            String.valueOf(hasPermission), 
             PERMISSION_CACHE_TTL_MINUTES, 
             TimeUnit.MINUTES
         );

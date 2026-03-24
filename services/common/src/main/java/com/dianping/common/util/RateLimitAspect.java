@@ -7,6 +7,7 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.core.DefaultParameterNameDiscoverer;
 import org.springframework.core.ParameterNameDiscoverer;
 import org.springframework.expression.EvaluationContext;
@@ -26,6 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Aspect
 @Component
+@ConditionalOnClass(RateLimiter.class)
 public class RateLimitAspect {
 
     private final Map<String, RateLimiter> limiters = new ConcurrentHashMap<>();

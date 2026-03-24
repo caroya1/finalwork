@@ -11,6 +11,10 @@ public class ApiResponse<T> {
         this.data = data;
     }
 
+    public static <T> ApiResponse<T> ok() {
+        return new ApiResponse<>(true, "ok", null);
+    }
+
     public static <T> ApiResponse<T> ok(T data) {
         return new ApiResponse<>(true, "ok", data);
     }

@@ -67,6 +67,13 @@
                 <configuration>
                     <mainClass>com.dianping.auth.AuthServiceApplication</mainClass>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

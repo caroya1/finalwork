@@ -1,7 +1,9 @@
 package com.dianping.common.service;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
@@ -13,8 +15,10 @@ import java.util.Set;
  * 管理权限校验结果的缓存
  */
 @Service
-@Slf4j
+@ConditionalOnBean(StringRedisTemplate.class)
 public class PermissionCacheService {
+
+    private static final Logger log = LoggerFactory.getLogger(PermissionCacheService.class);
 
     @Autowired
     private StringRedisTemplate redisTemplate;

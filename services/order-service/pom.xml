@@ -50,6 +50,13 @@
                 <configuration>
                     <mainClass>com.dianping.order.OrderServiceApplication</mainClass>
                 </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

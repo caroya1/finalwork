@@ -6,7 +6,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
@@ -29,8 +30,9 @@ import java.util.List;
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@Slf4j
 public class UserContextFilter extends OncePerRequestFilter {
+
+    private static final Logger log = LoggerFactory.getLogger(UserContextFilter.class);
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, 
@@ -48,6 +50,9 @@ public class UserContextFilter extends OncePerRequestFilter {
             String merchantId = request.getHeader("X-Merchant-Id");
             String username = request.getHeader("X-Username");
             
+            log.info("UserContextFilter 收到请求: path={}, X-User-Id={}, X-User-Role={}", 
+                request.getRequestURI(), userId, role);
+            
             if (StringUtils.hasText(userId)) {
                 UserSession session = new UserSession();
                 session.setId(Long.valueOf(userId));
@@ -61,22 +66,33 @@ public class UserContextFilter extends OncePerRequestFilter {
                 UserContext.set(session);
                 
                 // 设置到SecurityContext（用于@PreAuthorize）
+                // Spring Security 权限需要大写格式: ROLE_USER
+                String authorityRole = "ROLE_" + (role != null ? role.toUpperCase() : "USER");
                 List<GrantedAuthority> authorities = 
-                    Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
+                    Collections.singletonList(new SimpleGrantedAuthority(authorityRole));
                 Authentication auth = new UsernamePasswordAuthenticationToken(
                     session, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(auth);
+                
+                // 验证 SecurityContext 是否正确保存
+                Authentication savedAuth = SecurityContextHolder.getContext().getAuthentication();
+                log.info("SecurityContext 已设置: userId={}, authority={}, isAuthenticated={}, saved={}", 
+                    userId, authorityRole, auth.isAuthenticated(), savedAuth != null);
                 
                 log.debug("用户上下文已设置: userId={}, role={}", userId, role);
             }
             
             chain.doFilter(request, response);
-            
-        } finally {
-            // 清理上下文（防止内存泄漏）
+            // 请求处理完成后清理上下文
             UserContext.clear();
             SecurityContextHolder.clearContext();
             MDC.clear();
+        } catch (Exception e) {
+            // 发生异常时也清理上下文
+            UserContext.clear();
+            SecurityContextHolder.clearContext();
+            MDC.clear();
+            throw e;
         }
     }
 }

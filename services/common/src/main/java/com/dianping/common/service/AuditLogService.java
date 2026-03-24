@@ -3,15 +3,19 @@ package com.dianping.common.service;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.dianping.common.entity.AuditLogEntry;
 import com.dianping.common.mapper.AuditLogMapper;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 /**
  * 审计日志服务
  */
 @Service
-@Slf4j
+@ConditionalOnBean(AuditLogMapper.class)
 public class AuditLogService extends ServiceImpl<AuditLogMapper, AuditLogEntry> {
+
+    private static final Logger log = LoggerFactory.getLogger(AuditLogService.class);
     
     @Override
     public boolean save(AuditLogEntry entity) {

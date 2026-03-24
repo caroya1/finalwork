@@ -1,7 +1,9 @@
 package com.dianping.common.security;
 
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -15,8 +17,10 @@ import java.util.concurrent.TimeUnit;
  * 用于服务间调用的认证
  */
 @Service
-@Slf4j
+@ConditionalOnBean(StringRedisTemplate.class)
 public class InternalTokenService {
+
+    private static final Logger log = LoggerFactory.getLogger(InternalTokenService.class);
 
     @Autowired
     private StringRedisTemplate redisTemplate;
