@@ -18,3 +18,4 @@ gateway/node_modules/
 *-secrets.yml
 nacos-config/*-secrets.yml
 application-secrets.yml
+nacos-config/post-service.yml
