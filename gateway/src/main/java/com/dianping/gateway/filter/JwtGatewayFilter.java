@@ -38,7 +38,7 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
     @Value("${app.jwt.secret:DianpingJwtSecretKey2026}")
     private String jwtSecret;
 
-    @Value("${gateway.white-list:/api/auth/login,/api/auth/register,/api/auth/admin/login,/api/merchants/login,/api/merchants/register,/actuator/health,/api/public,/api/shops,/api/posts,/api/recommendations}")
+    @Value("${gateway.white-list:/api/auth/login,/api/auth/register,/api/auth/admin/login,/api/auth/logout,/api/merchants/login,/api/merchants/register,/actuator/health,/api/public,/api/shops,/api/posts,/api/recommendations}")
     private String whiteListStr;
 
     @Autowired
