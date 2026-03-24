@@ -13,30 +13,39 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 @Service
 public class MerchantService {
-    private static final String MERCHANT_LIST_CACHE_KEY = "dp:merchant:list";
+    private static final String ACCESS_TOKEN_PREFIX = "dp:merchant:token:access:";
+    private static final String REFRESH_TOKEN_PREFIX = "dp:merchant:token:refresh:";
     private static final String MERCHANT_CACHE_PREFIX = "dp:merchant:";
+    private static final String MERCHANT_LIST_CACHE_KEY = "dp:merchant:list";
 
     private final MerchantMapper merchantMapper;
     private final MerchantJwtService jwtService;
     private final PasswordPort passwordPort;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final long accessTtlSeconds;
+    private final long refreshTtlSeconds;
     private final long cacheTtlSeconds;
 
     public MerchantService(MerchantMapper merchantMapper,
-                           MerchantJwtService jwtService,
-                           PasswordPort passwordPort,
-                           RedisTemplate<String, Object> redisTemplate,
-                           @Value("${app.merchant.cache-ttl-seconds:300}") long cacheTtlSeconds) {
+                          MerchantJwtService jwtService,
+                          PasswordPort passwordPort,
+                          RedisTemplate<String, Object> redisTemplate,
+                          @Value("${app.jwt.expire-minutes:120}") long accessExpireMinutes,
+                          @Value("${app.jwt.refresh-expire-days:7}") long refreshExpireDays) {
         this.merchantMapper = merchantMapper;
         this.jwtService = jwtService;
         this.passwordPort = passwordPort;
         this.redisTemplate = redisTemplate;
-        this.cacheTtlSeconds = cacheTtlSeconds;
+        this.accessTtlSeconds = accessExpireMinutes * 60;
+        this.refreshTtlSeconds = refreshExpireDays * 24 * 60 * 60;
+        this.cacheTtlSeconds = 300;
     }
 
     public MerchantLoginResponse register(MerchantRegisterRequest request) {
@@ -78,16 +87,44 @@ public class MerchantService {
             throw new BusinessException("账号已被禁用");
         }
 
+        revokeExistingTokens(merchant.getId());
         return buildLoginResponse(merchant);
     }
 
+    private void revokeExistingTokens(Long merchantId) {
+        String accessPattern = ACCESS_TOKEN_PREFIX + merchantId + ":*";
+        String refreshPattern = REFRESH_TOKEN_PREFIX + merchantId + ":*";
+        
+        var accessKeys = redisTemplate.keys(accessPattern);
+        var refreshKeys = redisTemplate.keys(refreshPattern);
+        
+        if (accessKeys != null && !accessKeys.isEmpty()) {
+            redisTemplate.delete(accessKeys);
+        }
+        if (refreshKeys != null && !refreshKeys.isEmpty()) {
+            redisTemplate.delete(refreshKeys);
+        }
+    }
+
     private MerchantLoginResponse buildLoginResponse(Merchant merchant) {
-        String token = jwtService.generateToken(merchant.getId(), merchant.getEmail());
+        String accessToken = jwtService.generateAccessToken(merchant.getId(), merchant.getEmail());
+        String refreshToken = jwtService.generateRefreshToken(merchant.getId(), merchant.getEmail());
+        
+        Map<String, String> payload = new HashMap<>();
+        payload.put("merchantId", String.valueOf(merchant.getId()));
+        payload.put("email", merchant.getEmail());
+        payload.put("name", merchant.getName());
+        payload.put("role", "merchant");
+        
+        redisTemplate.opsForValue().set(ACCESS_TOKEN_PREFIX + merchant.getId() + ":" + accessToken, payload, accessTtlSeconds, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + merchant.getId() + ":" + refreshToken, payload, refreshTtlSeconds, TimeUnit.SECONDS);
+        
         MerchantLoginResponse response = new MerchantLoginResponse();
         response.setMerchantId(merchant.getId());
         response.setName(merchant.getName());
         response.setEmail(merchant.getEmail());
-        response.setToken(token);
+        response.setToken(accessToken);
+        response.setRefreshToken(refreshToken);
         return response;
     }
 

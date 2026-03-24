@@ -5,6 +5,7 @@ public class MerchantLoginResponse {
     private String name;
     private String email;
     private String token;
+    private String refreshToken;
 
     public Long getMerchantId() {
         return merchantId;
@@ -36,5 +37,13 @@ public class MerchantLoginResponse {
 
     public void setToken(String token) {
         this.token = token;
+    }
+
+    public String getRefreshToken() {
+        return refreshToken;
+    }
+
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 }

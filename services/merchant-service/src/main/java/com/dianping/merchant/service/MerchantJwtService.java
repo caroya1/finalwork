@@ -18,12 +18,15 @@ public class MerchantJwtService {
     private static final String DEFAULT_SECRET = "dianping-merchant-jwt-secret-key-2026-safe";
     private final SecretKey secretKey;
     private final long accessExpireMinutes;
+    private final long refreshExpireDays;
 
     public MerchantJwtService(@Value("${app.jwt.secret:}") String secret,
-                              @Value("${app.jwt.expire-minutes:120}") long accessExpireMinutes) {
+                               @Value("${app.jwt.expire-minutes:120}") long accessExpireMinutes,
+                               @Value("${app.jwt.refresh-expire-days:7}") long refreshExpireDays) {
         String finalSecret = normalizeSecret(secret);
         this.secretKey = Keys.hmacShaKeyFor(finalSecret.getBytes(StandardCharsets.UTF_8));
         this.accessExpireMinutes = accessExpireMinutes;
+        this.refreshExpireDays = refreshExpireDays;
     }
 
     private String normalizeSecret(String secret) {
@@ -40,16 +43,33 @@ public class MerchantJwtService {
         return sb.toString();
     }
 
-    public String generateToken(Long merchantId, String email) {
+    public String generateAccessToken(Long merchantId, String email) {
         Instant now = Instant.now();
         return Jwts.builder()
                 .setSubject(String.valueOf(merchantId))
                 .claim("email", email)
-                .claim("type", "merchant")
+                .claim("role", "merchant")
+                .claim("type", "access")
                 .setIssuedAt(Date.from(now))
                 .setExpiration(Date.from(now.plus(accessExpireMinutes, ChronoUnit.MINUTES)))
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    public String generateRefreshToken(Long merchantId, String email) {
+        Instant now = Instant.now();
+        return Jwts.builder()
+                .setSubject(String.valueOf(merchantId))
+                .claim("email", email)
+                .claim("type", "refresh")
+                .setIssuedAt(Date.from(now))
+                .setExpiration(Date.from(now.plus(refreshExpireDays, ChronoUnit.DAYS)))
+                .signWith(secretKey, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String generateToken(Long merchantId, String email) {
+        return generateAccessToken(merchantId, email);
     }
 
     public Claims parseClaims(String token) {
@@ -62,5 +82,9 @@ public class MerchantJwtService {
 
     public Long parseMerchantId(String token) {
         return Long.parseLong(parseClaims(token).getSubject());
+    }
+
+    public String getTokenType(String token) {
+        return parseClaims(token).get("type", String.class);
     }
 }
