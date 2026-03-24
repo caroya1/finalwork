@@ -84,11 +84,10 @@ const isLoggedIn = ref(false);
 const currentUsername = ref("");
 
 const checkLoginState = () => {
-  const token = localStorage.getItem("dp_token");
-  const refreshToken = localStorage.getItem("dp_refresh_token");
-  const username = localStorage.getItem("dp_username");
-  isLoggedIn.value = !!token && !!refreshToken;
-  currentUsername.value = username || "";
+  const token = localStorage.getItem("dp_token") || localStorage.getItem("dp_merchant_token");
+  const merchantId = localStorage.getItem("dp_merchant_id");
+  isLoggedIn.value = !!(token && merchantId);
+  currentUsername.value = localStorage.getItem("dp_username") || localStorage.getItem("dp_merchant_name") || "";
 };
 
 onMounted(checkLoginState);
