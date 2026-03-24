@@ -337,8 +337,15 @@ const submitAuth = async () => {
     currentUsername.value = authForm.value.username;
     authOpen.value = false;
 
-    /* 按角色导航 */
-    router.push("/");
+    /* 通知主页刷新数据 */
+    window.dispatchEvent(new CustomEvent("dp-auth-change", { detail: { type: "login" } }));
+    
+    /* 跳转到主页并刷新 */
+    if (router.currentRoute.value.path === "/") {
+      window.location.reload();
+    } else {
+      router.push("/");
+    }
   } catch (err) {
     authMessage.value = "操作失败，请检查网络后重试";
     authMessageType.value = "error";
@@ -366,7 +373,16 @@ const doLogout = async () => {
   isLoggedIn.value = false;
   currentUsername.value = "";
   currentCity.value = "上海";
-  router.push("/");
+  
+  /* 通知主页刷新数据 */
+  window.dispatchEvent(new CustomEvent("dp-auth-change", { detail: { type: "logout" } }));
+  
+  /* 跳转到主页并刷新 */
+  if (router.currentRoute.value.path === "/") {
+    window.location.reload();
+  } else {
+    router.push("/");
+  }
 };
 
 /* ---------- 城市选择 ---------- */
