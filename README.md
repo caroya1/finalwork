@@ -210,16 +210,46 @@ import-to-nacos.bat http://192.168.145.128:8848
 bash import-to-nacos.sh http://192.168.145.128:8848
 ```
 
-**注意**: `post-service.yml` 包含腾讯云COS密钥，该文件已被Git忽略，需要手动配置：
-```yaml
-app:
-  oss:
-    tencent:
-      secret-id: your-secret-id
-      secret-key: your-secret-key
-      bucket-name: your-bucket-name
-      region: ap-guangzhou
-```
+**敏感信息配置**: 本项目使用环境变量管理敏感信息（API Key、密码等）：
+
+1. **查看配置模板**（`nacos-config/secrets.template.yml`）了解需要配置哪些敏感信息
+
+2. **创建本地 secrets 文件**（该文件已被 Git 忽略，不会被提交）：
+   ```bash
+   cd nacos-config
+   cp secrets.template.yml secrets.yml
+   # 编辑 secrets.yml 填入你的真实敏感信息
+   ```
+
+3. **配置方式**：
+   
+   **方式A：直接配置到 Nacos（推荐用于开发环境）**
+   将 `secrets.yml` 中的配置复制到 Nacos 对应服务的配置文件中：
+   - `ai-service.yml` - 配置 DashScope API Key
+   - `post-service.yml` - 配置腾讯云 COS 密钥（secret-id, secret-key, bucket-name）
+   
+   **方式B：环境变量（推荐用于生产环境）**
+   ```bash
+   # Windows PowerShell
+   $env:DASHSCOPE_API_KEY="sk-your-api-key"
+   $env:TENCENT_SECRET_ID="your-secret-id"
+   $env:TENCENT_SECRET_KEY="your-secret-key"
+   
+   # Linux/Mac
+   export DASHSCOPE_API_KEY=sk-your-api-key
+   export TENCENT_SECRET_ID=your-secret-id
+   export TENCENT_SECRET_KEY=your-secret-key
+   ```
+   
+   **配置优先级**: 环境变量 > Nacos 配置 > 配置文件默认值
+   
+4. **配置检查**: 确保以下配置项已正确设置：
+   | 配置项 | 说明 | 所在文件 |
+   |--------|------|----------|
+   | `ai.dashscope.api-key` | 通义千问 API Key | ai-service.yml |
+   | `app.oss.tencent.secret-id` | 腾讯云 Secret ID | post-service.yml |
+   | `app.oss.tencent.secret-key` | 腾讯云 Secret Key | post-service.yml |
+   | `app.oss.tencent.bucket-name` | COS 存储桶名称 | post-service.yml |
 
 ### 4. 构建项目
 
