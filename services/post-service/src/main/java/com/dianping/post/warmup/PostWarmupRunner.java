@@ -36,7 +36,8 @@ public class PostWarmupRunner extends WarmupRunner {
             long start = System.currentTimeMillis();
             
             LambdaQueryWrapper<Post> wrapper = new LambdaQueryWrapper<>();
-            wrapper.orderByDesc(Post::getLikes)
+            wrapper.eq(Post::getAuditStatus, 1)
+                   .orderByDesc(Post::getLikes)
                    .last("LIMIT " + WARMUP_LIMIT);
             List<Post> hotPosts = postMapper.selectList(wrapper);
             

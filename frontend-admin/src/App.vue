@@ -10,6 +10,7 @@
       </div>
       <nav class="nav">
         <RouterLink to="/">订单中心</RouterLink>
+        <RouterLink to="/audit-records">审核记录</RouterLink>
       </nav>
       <div class="header-actions" v-if="!isLoggedIn">
         <button class="ghost-btn" @click="openAuth">管理员登录</button>

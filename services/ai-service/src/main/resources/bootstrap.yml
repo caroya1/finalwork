@@ -1,0 +1,23 @@
+server:
+  port: 8099
+
+spring:
+  application:
+    name: ai-service
+  cloud:
+    nacos:
+      username: nacos
+      password: nacos
+      discovery:
+        server-addr: 192.168.145.128:8848
+        username: ${spring.cloud.nacos.username}
+        password: ${spring.cloud.nacos.password}
+        context-path: /nacos
+        group: DEFAULT_GROUP
+      config:
+        server-addr: 192.168.145.128:8848
+        username: ${spring.cloud.nacos.username}
+        password: ${spring.cloud.nacos.password}
+        context-path: /nacos
+        file-extension: yml
+        group: DEFAULT_GROUP

@@ -25,6 +25,7 @@
 
 **用户端**
 - 🔍 店铺搜索与筛选（按城市、分类、评分）
+- 🤖 AI智能助手（支持美食、酒店、电影、景点等多场景推荐）
 - 📍 附近店铺推荐
 - 🎫 优惠券领取与使用
 - 📝 帖子发布与互动（点赞、评论）
@@ -78,11 +79,11 @@
 │  shop-service   │  │ coupon-service  │  │  order-service  │
 │    Port: 8094   │  │    Port: 8095   │  │    Port: 8096   │
 └─────────────────┘  └─────────────────┘  └─────────────────┘
-┌─────────────────┐  ┌─────────────────┐
-│   帖子服务       │  │   推荐服务       │
-│  post-service   │  │ recommendation- │
-│    Port: 8097   │  │    service      │
-└─────────────────┘  │    Port: 8098   │
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│   帖子服务       │  │   推荐服务       │  │   AI服务        │
+│  post-service   │  │ recommendation- │  │  ai-service     │
+│    Port: 8097   │  │    service      │  │    Port: 8099   │
+└─────────────────┘  │    Port: 8098   │  └─────────────────┘
                      └─────────────────┘
                               │
                               ▼
@@ -107,6 +108,7 @@
 - **消息队列**: RabbitMQ（可选）
 - **对象存储**: 腾讯云 COS
 - **安全**: Spring Security + JWT
+- **AI大模型**: 通义千问（DashScope API）
 
 **前端**
 - **框架**: Vue 3.4
@@ -140,6 +142,7 @@
 - `dianping_order` - 订单服务数据库
 - `dianping_post` - 帖子服务数据库
 - `dianping_recommendation` - 推荐服务数据库
+- `dianping_ai` - AI服务数据库（审核记录）
 
 ## 📦 项目结构
 
@@ -264,6 +267,9 @@ mvn spring-boot:run
 
 cd ../recommendation-service
 mvn spring-boot:run
+
+cd ../ai-service
+mvn spring-boot:run
 ```
 
 ### 6. 启动前端
@@ -307,6 +313,7 @@ npm run dev
 | order-service | user-service, shop-service, coupon-service | 依赖用户、店铺、优惠券服务 |
 | post-service | user-service, shop-service | 依赖用户、店铺服务 |
 | recommendation-service | shop-service | 依赖店铺服务 |
+| ai-service | shop-service | 依赖店铺服务，提供AI审核与推荐 |
 
 ### 服务端口映射
 
@@ -321,6 +328,34 @@ npm run dev
 | order-service | 8096 | order-service | order-service |
 | post-service | 8097 | post-service | post-service |
 | recommendation-service | 8098 | recommendation-service | recommendation-service |
+| ai-service | 8099 | ai-service | ai-service |
+
+## 🤖 AI助手功能
+
+### 功能简介
+
+系统集成了**通义千问大模型**，提供智能对话式本地生活推荐服务：
+
+**支持场景**
+- 🍜 **美食推荐** - 根据用餐场景（聚餐、约会、商务等）推荐餐厅
+- 🏨 **酒店住宿** - 根据位置、预算推荐舒适酒店
+- 🎬 **电影娱乐** - 推荐附近影院及热门影片
+- 🏞️ **景点游玩** - 推荐周边游、打卡景点
+- ☕ **咖啡下午茶** - 推荐休闲场所
+
+**使用方法**
+1. 在用户端页面右下角点击「🤖 AI助手」按钮
+2. 输入您的需求，例如：
+   - "推荐适合约会的餐厅"
+   - "找一家舒适的酒店"
+   - "附近有什么好吃的"
+   - "推荐个看电影的地方"
+3. AI将智能分析您的需求并推荐最合适的地方
+
+**技术实现**
+- 后端：`ai-service` 服务通过 DashScope API 调用通义千问
+- 前端：`SmartRecommendDialog.vue` 组件提供对话界面
+- 接口：`POST /api/ai/chat` - 对话式推荐
 
 ## 📝 接口文档
 
@@ -460,15 +495,3 @@ chore: 构建/工具相关
 - `develop`: 开发分支
 - `feature/xxx`: 功能分支
 - `bugfix/xxx`: 修复分支
-
-## 📄 许可证
-
-[MIT License](LICENSE)
-
-## 👥 贡献者
-
-感谢所有为本项目做出贡献的开发者。
-
----
-
-**注意**: 本项目仅供学习交流使用，请勿用于商业用途。

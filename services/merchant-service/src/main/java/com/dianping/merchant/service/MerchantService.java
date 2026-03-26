@@ -1,6 +1,9 @@
 package com.dianping.merchant.service;
 
+import com.dianping.common.dto.AuditRequest;
+import com.dianping.common.dto.AuditResult;
 import com.dianping.common.exception.BusinessException;
+import com.dianping.common.port.AiPort;
 import com.dianping.common.port.PasswordPort;
 import com.dianping.merchant.dto.MerchantLoginRequest;
 import com.dianping.merchant.dto.MerchantLoginResponse;
@@ -13,6 +16,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,20 +33,23 @@ public class MerchantService {
     private final MerchantJwtService jwtService;
     private final PasswordPort passwordPort;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final AiPort aiPort;
     private final long accessTtlSeconds;
     private final long refreshTtlSeconds;
     private final long cacheTtlSeconds;
 
     public MerchantService(MerchantMapper merchantMapper,
-                          MerchantJwtService jwtService,
-                          PasswordPort passwordPort,
-                          RedisTemplate<String, Object> redisTemplate,
-                          @Value("${app.jwt.expire-minutes:120}") long accessExpireMinutes,
-                          @Value("${app.jwt.refresh-expire-days:7}") long refreshExpireDays) {
+                           MerchantJwtService jwtService,
+                           PasswordPort passwordPort,
+                           RedisTemplate<String, Object> redisTemplate,
+                           AiPort aiPort,
+                           @Value("${app.jwt.expire-minutes:120}") long accessExpireMinutes,
+                           @Value("${app.jwt.refresh-expire-days:7}") long refreshExpireDays) {
         this.merchantMapper = merchantMapper;
         this.jwtService = jwtService;
         this.passwordPort = passwordPort;
         this.redisTemplate = redisTemplate;
+        this.aiPort = aiPort;
         this.accessTtlSeconds = accessExpireMinutes * 60;
         this.refreshTtlSeconds = refreshExpireDays * 24 * 60 * 60;
         this.cacheTtlSeconds = 300;
@@ -187,6 +194,61 @@ public class MerchantService {
         merchantMapper.updateById(merchant);
         invalidateCache(id);
         return merchant;
+    }
+
+    public Merchant approveWithAiAudit(Long id) {
+        Merchant merchant = merchantMapper.selectById(id);
+        if (merchant == null) {
+            throw new BusinessException("商户不存在");
+        }
+
+        if (merchant.getStatus() != MerchantStatus.PENDING.getCode()) {
+            throw new BusinessException("只有待审核的商户才能进行AI审核");
+        }
+
+        String content = buildAuditContent(merchant);
+        AuditRequest auditRequest = new AuditRequest(content, "MERCHANT", merchant.getId());
+
+        AuditResult auditResult;
+        try {
+            auditResult = aiPort.audit(auditRequest);
+        } catch (Exception e) {
+            throw new BusinessException("AI审核服务调用失败: " + e.getMessage());
+        }
+
+        if (auditResult == null || auditResult.getApproved() == null) {
+            throw new BusinessException("AI审核结果无效");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        merchant.setAiAuditTime(now);
+
+        if (Boolean.TRUE.equals(auditResult.getApproved())) {
+            merchant.setStatus(MerchantStatus.NORMAL.getCode());
+            merchant.setAiAuditStatus(1);
+            merchant.setAiAuditReason(null);
+        } else {
+            merchant.setStatus(MerchantStatus.DISABLED.getCode());
+            merchant.setAiAuditStatus(0);
+            merchant.setAiAuditReason(auditResult.getReason());
+        }
+
+        merchant.touchForUpdate();
+        merchantMapper.updateById(merchant);
+        invalidateCache(id);
+
+        return merchant;
+    }
+
+    private String buildAuditContent(Merchant merchant) {
+        StringBuilder content = new StringBuilder();
+        content.append("商户名称: ").append(merchant.getName()).append("\n");
+        content.append("经营类目: ").append(merchant.getCategory()).append("\n");
+        content.append("所在城市: ").append(merchant.getCity()).append("\n");
+        content.append("联系人: ").append(merchant.getContactName()).append("\n");
+        content.append("联系电话: ").append(merchant.getContactPhone()).append("\n");
+        content.append("联系邮箱: ").append(merchant.getEmail());
+        return content.toString();
     }
 
     private void applyUpdate(Merchant merchant, Merchant request) {

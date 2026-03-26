@@ -32,6 +32,13 @@ public class Merchant {
 
     private LocalDateTime updatedAt;
 
+    // AI audit fields
+    private Integer aiAuditStatus;
+
+    private String aiAuditReason;
+
+    private LocalDateTime aiAuditTime;
+
     public void touchForCreate() {
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
@@ -131,5 +138,29 @@ public class Merchant {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public Integer getAiAuditStatus() {
+        return aiAuditStatus;
+    }
+
+    public void setAiAuditStatus(Integer aiAuditStatus) {
+        this.aiAuditStatus = aiAuditStatus;
+    }
+
+    public String getAiAuditReason() {
+        return aiAuditReason;
+    }
+
+    public void setAiAuditReason(String aiAuditReason) {
+        this.aiAuditReason = aiAuditReason;
+    }
+
+    public LocalDateTime getAiAuditTime() {
+        return aiAuditTime;
+    }
+
+    public void setAiAuditTime(LocalDateTime aiAuditTime) {
+        this.aiAuditTime = aiAuditTime;
     }
 }

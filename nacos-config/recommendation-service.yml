@@ -18,6 +18,8 @@ spring:
 app:
   recommendation:
     cache-ttl-seconds: 300
+    ai:
+      enabled: true
 
 mybatis-plus:
   configuration:

@@ -36,7 +36,7 @@ public class AdminMerchantController {
 
     @PutMapping("/{id}/approve")
     public ApiResponse<Merchant> approve(@PathVariable("id") Long id) {
-        return ApiResponse.ok(merchantService.updateStatus(id, MerchantStatus.NORMAL.getCode()));
+        return ApiResponse.ok(merchantService.approveWithAiAudit(id));
     }
 
     @PutMapping("/{id}/reject")

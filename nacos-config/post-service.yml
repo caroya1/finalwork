@@ -24,11 +24,10 @@ app:
     cache-ttl-seconds: 300
   oss:
     tencent:
-      # 敏感信息已移至 post-service-secrets.yml
-      secret-id: ${OSS_SECRET_ID:}
-      secret-key: ${OSS_SECRET_KEY:}
-      bucket-name: dianping-images-1361062114
-      region: ap-guangzhou
+      secret-id: ${TENCENT_SECRET_ID:your-secret-id-here}
+      secret-key: ${TENCENT_SECRET_KEY:your-secret-key-here}
+      bucket-name: ${TENCENT_BUCKET:your-bucket-name}
+      region: ${TENCENT_REGION:ap-guangzhou}
       max-size: 10485760
       allowed-types: image/jpeg,image/png,image/gif,image/webp
 

@@ -56,13 +56,19 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
             whiteList = Arrays.asList(whiteListStr.split(","));
         }
 
-        // 1. 白名单放行
-        if (isWhiteListed(path)) {
+        // 1. 白名单放行（GET请求或认证相关API）
+        String method = request.getMethod().name();
+        if ("GET".equals(method) && isWhiteListed(path)) {
+            return chain.filter(exchange);
+        }
+        // 认证接口始终放行
+        if (isAuthPath(path)) {
             return chain.filter(exchange);
         }
 
         // 2. 提取Token
         String token = extractToken(request);
+        log.info("JWT Filter: path={}, method={}, token={}", path, method, token != null ? token.substring(0, Math.min(20, token.length())) + "..." : "null");
         if (!StringUtils.hasText(token)) {
             return unauthorized(exchange, "缺少认证Token");
         }
@@ -119,7 +125,6 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
                     .build();
 
             // 6. 记录访问日志（非查询操作）
-            String method = request.getMethod().name();
             if (!isQueryMethod(method)) {
                 log.info("用户访问: userId={}, path={}, method={}", userId, path, method);
             }
@@ -143,8 +148,15 @@ public class JwtGatewayFilter implements GlobalFilter, Ordered {
         return whiteList.stream().anyMatch(path::startsWith);
     }
 
+    private boolean isAuthPath(String path) {
+        return path.startsWith("/api/auth/") ||
+               path.startsWith("/api/merchants/login") ||
+               path.startsWith("/api/merchants/register");
+    }
+
     private String extractToken(ServerHttpRequest request) {
         String bearerToken = request.getHeaders().getFirst("Authorization");
+        log.info("extractToken: Authorization header={}", bearerToken);
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
             return bearerToken.substring(7);
         }

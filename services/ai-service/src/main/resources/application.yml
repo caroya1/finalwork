@@ -1,0 +1,72 @@
+server:
+  port: 8099
+
+spring:
+  application:
+    name: ai-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/dianping_ai?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai&createDatabaseIfNotExist=true&allowMultiQueries=true&useSSL=false
+    username: root
+    password: 123456
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: 192.168.145.128
+      port: 6379
+      password: 123456
+
+ai:
+  dashscope:
+    base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+    model: qwen-plus
+  monitoring:
+    cost-alert-threshold: 100
+
+# Resilience4j Circuit Breaker Configuration
+resilience4j:
+  circuitbreaker:
+    instances:
+      aiAudit:
+        failureRateThreshold: 50
+        waitDurationInOpenState: 30s
+        slidingWindowSize: 10
+        permittedNumberOfCallsInHalfOpenState: 5
+        minimumNumberOfCalls: 5
+        slowCallRateThreshold: 100
+        slowCallDurationThreshold: 5s
+        registerHealthIndicator: true
+        slidingWindowType: COUNT_BASED
+
+  # Rate Limiter Configuration
+  ratelimiter:
+    instances:
+      aiAudit:
+        limitForPeriod: 10
+        limitRefreshPeriod: 1s
+        timeoutDuration: 0
+        registerHealthIndicator: true
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,circuitbreakers,ratelimiters,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: ${spring.application.name}
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
+
+logging:
+  level:
+    io.github.resilience4j: WARN
+    com.dianping.ai: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

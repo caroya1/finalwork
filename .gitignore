@@ -19,3 +19,4 @@ gateway/node_modules/
 nacos-config/*-secrets.yml
 application-secrets.yml
 nacos-config/post-service.yml
+nacos-config/ai-service.yml

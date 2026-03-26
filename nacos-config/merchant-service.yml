@@ -14,7 +14,7 @@ spring:
       port: 6379
       password: 123456
   datasource:
-    url: jdbc:mysql://192.168.145.128:3306/dianping_merchant?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://localhost:3306/dianping_merchant?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver

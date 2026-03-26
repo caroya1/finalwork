@@ -3,7 +3,10 @@ package com.dianping.shop.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.dianping.shop.entity.Shop;
 import com.dianping.shop.mapper.ShopMapper;
+import com.dianping.common.dto.AuditRequest;
+import com.dianping.common.dto.AuditResult;
 import com.dianping.common.dto.ShopSummary;
+import com.dianping.common.port.AiPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,13 +29,16 @@ public class ShopService {
 
     private final ShopMapper shopMapper;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final AiPort aiPort;
     private final long cacheTtlSeconds;
 
     public ShopService(ShopMapper shopMapper,
                        RedisTemplate<String, Object> redisTemplate,
+                       AiPort aiPort,
                        @Value("${app.shop.cache-ttl-seconds:300}") long cacheTtlSeconds) {
         this.shopMapper = shopMapper;
         this.redisTemplate = redisTemplate;
+        this.aiPort = aiPort;
         this.cacheTtlSeconds = cacheTtlSeconds;
     }
 
@@ -91,10 +97,55 @@ public class ShopService {
     }
 
     public Shop create(Shop shop) {
+        AuditResult auditResult = performAudit(shop);
+        
+        if (Boolean.TRUE.equals(auditResult.getApproved())) {
+            shop.setAuditStatus(1);
+            shop.setAuditRemark(null);
+        } else {
+            String reason = auditResult.getReason() != null ? auditResult.getReason() : "Content violates community guidelines";
+            throw new IllegalArgumentException("Shop application rejected: " + reason);
+        }
+        
         shop.touchForCreate();
         shopMapper.insert(shop);
         invalidateCache(shop.getId(), shop.getCity(), shop.getCategory());
         return shop;
+    }
+    
+    private AuditResult performAudit(Shop shop) {
+        StringBuilder contentBuilder = new StringBuilder();
+        if (StringUtils.hasText(shop.getName())) {
+            contentBuilder.append("Shop Name: ").append(shop.getName()).append("\n");
+        }
+        if (StringUtils.hasText(shop.getCategory())) {
+            contentBuilder.append("Category: ").append(shop.getCategory()).append("\n");
+        }
+        if (StringUtils.hasText(shop.getAddress())) {
+            contentBuilder.append("Address: ").append(shop.getAddress()).append("\n");
+        }
+        if (StringUtils.hasText(shop.getTags())) {
+            contentBuilder.append("Tags: ").append(shop.getTags()).append("\n");
+        }
+        
+        String content = contentBuilder.toString();
+        if (!StringUtils.hasText(content)) {
+            content = "No content provided";
+        }
+        
+        AuditRequest request = new AuditRequest(content, "SHOP", null);
+        
+        try {
+            return aiPort.audit(request);
+        } catch (Exception e) {
+            log.warn("AI audit service failed, falling back to auto-approve: {}", e.getMessage());
+            AuditResult fallback = new AuditResult();
+            fallback.setApproved(true);
+            fallback.setReason("Auto-approved due to AI service unavailability");
+            fallback.setConfidence(1.0);
+            fallback.setAuditType("SHOP");
+            return fallback;
+        }
     }
 
     public List<Shop> list(String city, String category) {
@@ -104,6 +155,7 @@ public class ShopService {
             return castList(cached);
         }
         LambdaQueryWrapper<Shop> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Shop::getAuditStatus, 1);
         if (city != null && !city.trim().isEmpty()) {
             wrapper.eq(Shop::getCity, city.trim());
         }
@@ -138,6 +190,7 @@ public class ShopService {
     public List<Shop> listByMerchantId(Long merchantId) {
         LambdaQueryWrapper<Shop> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Shop::getMerchantId, merchantId)
+               .eq(Shop::getAuditStatus, 1)
                .orderByDesc(Shop::getCreatedAt);
         return shopMapper.selectList(wrapper);
     }

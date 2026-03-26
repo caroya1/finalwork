@@ -58,8 +58,12 @@ public class PostController {
         if (userId == null) {
             return ApiResponse.fail("login required");
         }
-        postCommentService.addComment(id, userId, request);
-        return ApiResponse.ok(null);
+        try {
+            postCommentService.addComment(id, userId, request);
+            return ApiResponse.ok(null);
+        } catch (PostCommentService.CommentRejectedException e) {
+            return ApiResponse.fail(e.getMessage());
+        }
     }
 
     @PostMapping

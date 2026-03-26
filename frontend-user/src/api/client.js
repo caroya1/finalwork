@@ -21,16 +21,30 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
-client.interceptors.response.use((response) => {
-  const nextAccess = response.headers?.authorization;
-  const nextRefresh = response.headers?.["x-refresh-token"];
-  if (nextAccess && nextAccess.startsWith("Bearer ")) {
-    localStorage.setItem("dp_token", nextAccess.substring(7));
+client.interceptors.response.use(
+  (response) => {
+    const nextAccess = response.headers?.authorization;
+    const nextRefresh = response.headers?.["x-refresh-token"];
+    if (nextAccess && nextAccess.startsWith("Bearer ")) {
+      localStorage.setItem("dp_token", nextAccess.substring(7));
+    }
+    if (nextRefresh) {
+      localStorage.setItem("dp_refresh_token", nextRefresh);
+    }
+    return response;
+  },
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token 过期或无效，清除登录状态并触发登录弹窗
+      localStorage.removeItem("dp_token");
+      localStorage.removeItem("dp_refresh_token");
+      localStorage.removeItem("dp_user_id");
+      localStorage.removeItem("dp_username");
+      window.dispatchEvent(new CustomEvent("dp-auth-required"));
+      window.dispatchEvent(new CustomEvent("dp-auth-change", { detail: { isLoggedIn: false } }));
+    }
+    return Promise.reject(error);
   }
-  if (nextRefresh) {
-    localStorage.setItem("dp_refresh_token", nextRefresh);
-  }
-  return response;
-});
+);
 
 export default client;

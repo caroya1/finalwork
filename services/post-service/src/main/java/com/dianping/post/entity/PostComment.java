@@ -1,6 +1,7 @@
 package com.dianping.post.entity;
 
 import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDateTime;
@@ -15,6 +16,12 @@ public class PostComment {
     private Long userId;
 
     private String content;
+
+    @TableField(value = "audit_status", exist = false)
+    private Integer auditStatus = 0;
+
+    @TableField(value = "audit_remark", exist = false)
+    private String auditRemark;
 
     private LocalDateTime createdAt;
 
@@ -56,5 +63,21 @@ public class PostComment {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public Integer getAuditStatus() {
+        return auditStatus;
+    }
+
+    public void setAuditStatus(Integer auditStatus) {
+        this.auditStatus = auditStatus;
+    }
+
+    public String getAuditRemark() {
+        return auditRemark;
+    }
+
+    public void setAuditRemark(String auditRemark) {
+        this.auditRemark = auditRemark;
     }
 }

@@ -11,7 +11,8 @@ import java.util.List;
 @Mapper
 public interface ShopMapper extends BaseMapper<Shop> {
     @Select("SELECT * FROM dp_shop " +
-            "WHERE (#{city} IS NULL OR #{city} = '' OR city = #{city}) " +
+            "WHERE audit_status = 1 " +
+            "AND (#{city} IS NULL OR #{city} = '' OR city = #{city}) " +
             "AND (" +
             "name LIKE CONCAT('%', #{keyword}, '%') " +
             "OR category LIKE CONCAT('%', #{keyword}, '%') " +

@@ -15,6 +15,8 @@ public class RecommendationRequest {
     private Double longitude;
     
     private Double latitude;
+    
+    private String strategy;
 
     public Long getUserId() {
         return userId;
@@ -54,5 +56,13 @@ public class RecommendationRequest {
 
     public void setLatitude(Double latitude) {
         this.latitude = latitude;
+    }
+
+    public String getStrategy() {
+        return strategy;
+    }
+
+    public void setStrategy(String strategy) {
+        this.strategy = strategy;
     }
 }

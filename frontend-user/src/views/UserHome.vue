@@ -1,8 +1,15 @@
 <template>
   <section class="recommend-section">
     <div class="recommend-header">
-      <h2 class="recommend-title">🔥 热门推荐</h2>
-      <p class="recommend-subtitle" v-if="recommendations.length > 0">为你精选 {{ recommendations.length }} 家好店</p>
+      <h2 :class="['recommend-title', currentStrategy === 'ai' ? 'ai-active' : '']">
+        <span v-if="currentStrategy === 'ai'" class="ai-title-icon">✨</span>
+        <span v-else>🔥</span>
+        {{ currentStrategy === 'ai' ? 'AI智能推荐' : '热门推荐' }}
+        <span v-if="currentStrategy === 'ai'" class="ai-badge">AI</span>
+      </h2>
+      <p class="recommend-subtitle" v-if="recommendations.length > 0">
+        {{ currentStrategy === 'ai' ? 'AI为你智能匹配' : '为你精选' }} {{ recommendations.length }} 家好店
+      </p>
     </div>
     
     <div class="recommend-cards">
@@ -99,6 +106,27 @@
     <span class="empty-icon-large">📝</span>
     <p>暂无帖子，稍后再试</p>
   </div>
+
+  <!-- Floating AI Recommend Button -->
+  <button 
+    class="fab-smart-recommend" 
+    @click="openSmartDialog"
+    aria-label="智能推荐"
+    title="智能推荐"
+  >
+    <div class="fab-icon-wrapper">
+      <svg class="fab-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="currentColor" opacity="0.4"/>
+        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <span class="fab-tooltip">智能推荐</span>
+    <span class="fab-pulse-ring"></span>
+  </button>
+
+  <!-- Smart Recommend Dialog -->
+  <SmartRecommendDialog v-model="showSmartDialog" />
 </template>
 
 <script setup>
@@ -106,12 +134,24 @@ import { ref, onMounted, onBeforeUnmount } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import { fetchRecommendations } from "../api/recommendation";
 import { listPosts } from "../api/post";
+import SmartRecommendDialog from "../components/SmartRecommendDialog.vue";
 
 const router = useRouter();
 
 const recommendations = ref([]);
 const recMessage = ref("");
 const recLoading = ref(false);
+
+// Smart Recommend Dialog state
+const showSmartDialog = ref(false);
+
+const openSmartDialog = () => {
+  showSmartDialog.value = true;
+};
+
+const closeSmartDialog = () => {
+  showSmartDialog.value = false;
+};
 
 const categories = ref([
   { icon: "🍜", label: "美食", desc: "今日爆款", query: "美食" },
@@ -123,18 +163,24 @@ const categories = ref([
 
 const feeds = ref([]);
 
-const loadRecommendations = async (scene) => {
+const currentStrategy = ref("hot");
+
+const loadRecommendations = async (scene, strategy = "hot") => {
   recMessage.value = "";
   recLoading.value = true;
   const userId = localStorage.getItem("dp_user_id");
   const city = localStorage.getItem("dp_city") || "上海";
-  
+
+  /* 更新当前策略 */
+  currentStrategy.value = strategy;
+
   const payload = {
     userId: userId ? Number(userId) : 0,
     city: city,
-    scene: scene || null
+    scene: scene || null,
+    strategy: strategy
   };
-  
+
   try {
     const response = await fetchRecommendations(payload);
     if (response.success) {
@@ -205,8 +251,9 @@ const handleSearch = (event) => {
   const detail = event.detail || {};
   const keyword = typeof detail === "string" ? detail : detail.keyword;
   const mode = typeof detail === "string" ? "search" : detail.mode || "search";
+  const strategy = typeof detail === "string" ? "hot" : detail.strategy || "hot";
   if (mode === "recommend") {
-    loadRecommendations(keyword || "");
+    loadRecommendations(keyword || "", strategy);
     return;
   }
   if (keyword) {
@@ -691,15 +738,195 @@ onBeforeUnmount(() => {
   .category-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .category-card {
     padding: var(--space-3) var(--space-4);
   }
-  
+
   .category-icon {
     width: 44px;
     height: 44px;
     font-size: var(--text-xl);
   }
+}
+
+/* Floating Action Button - Smart Recommend */
+.fab-smart-recommend {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+  color: var(--text-inverse);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 32px rgba(255, 107, 53, 0.4);
+  transition: all var(--transition-base);
+  z-index: var(--z-fixed);
+  overflow: visible;
+}
+
+.fab-smart-recommend:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 12px 40px rgba(255, 107, 53, 0.5);
+}
+
+.fab-smart-recommend:active {
+  transform: translateY(-2px) scale(0.98);
+}
+
+.fab-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fab-bounce 2s ease-in-out infinite;
+}
+
+.fab-icon {
+  width: 28px;
+  height: 28px;
+}
+
+/* Pulse Ring Animation */
+.fab-pulse-ring {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  border: 2px solid var(--brand-primary);
+  opacity: 0;
+  animation: fab-pulse 2s ease-out infinite;
+  pointer-events: none;
+}
+
+.fab-smart-recommend:hover .fab-pulse-ring {
+  animation-play-state: paused;
+}
+
+@keyframes fab-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
+@keyframes fab-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/* Tooltip */
+.fab-tooltip {
+  position: absolute;
+  right: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%) scale(0.9);
+  background: var(--neutral-800);
+  color: var(--text-inverse);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+}
+
+.fab-tooltip::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-left-color: var(--neutral-800);
+}
+
+.fab-smart-recommend:hover .fab-tooltip {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%) scale(1);
+}
+
+/* Responsive adjustments for FAB */
+@media (max-width: 768px) {
+  .fab-smart-recommend {
+    bottom: 70px;
+    right: 16px;
+    width: 56px;
+    height: 56px;
+  }
+
+  .fab-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .fab-tooltip {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .fab-smart-recommend {
+    bottom: 60px;
+    right: 12px;
+    width: 52px;
+    height: 52px;
+  }
+
+  .fab-icon {
+    width: 22px;
+    height: 22px;
+  }
+}
+
+/* AI推荐标题样式 */
+.recommend-title.ai-active {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.ai-title-icon {
+  font-size: var(--text-lg);
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+.ai-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-2);
+  background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+  color: var(--text-inverse);
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  border-radius: var(--radius-md);
+  margin-left: var(--space-2);
+  -webkit-text-fill-color: var(--text-inverse);
 }
 </style>

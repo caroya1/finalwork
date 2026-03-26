@@ -19,6 +19,7 @@
         <module>order-service</module>
         <module>post-service</module>
         <module>recommendation-service</module>
+        <module>ai-service</module>
     </modules>
 
     <properties>

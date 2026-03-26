@@ -30,7 +30,9 @@ public class SensitiveWordFilter {
      * 默认敏感词列表
      */
     private static final String[] DEFAULT_SENSITIVE_WORDS = {
-
+        "操", "他妈", "妈的", "傻逼", "傻比", "蠢货", "废物", "垃圾", "混蛋", "滚蛋",
+        "草泥马", "去死", "死全家", "不得好死", "王八蛋", "婊子", "贱人", "骚货",
+        "fuck", "shit", "bitch", "ass", "damn", "crap", "hell", "stupid", "idiot"
     };
 
     @PostConstruct

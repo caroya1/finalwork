@@ -3,8 +3,10 @@ package com.dianping.recommendation.service;
 import com.dianping.recommendation.dto.RecommendationRequest;
 import com.dianping.recommendation.entity.RecommendationLog;
 import com.dianping.recommendation.mapper.RecommendationLogMapper;
+import com.dianping.recommendation.strategy.AiRecommendStrategy;
 import com.dianping.recommendation.strategy.HybridRecommendStrategy;
 import com.dianping.recommendation.strategy.RecommendStrategy;
+import com.dianping.recommendation.strategy.HotRecommendStrategy;
 import com.dianping.common.dto.ShopSummary;
 import com.dianping.common.port.ShopPort;
 import com.dianping.common.dto.ShopDTO;
@@ -18,7 +20,9 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -39,19 +43,31 @@ public class RecommendationService {
     private final long cacheTtlSeconds;
     private final Executor appTaskExecutor;
     private final HybridRecommendStrategy recommendStrategy;
+    private final AiRecommendStrategy aiRecommendStrategy;
+    private final HotRecommendStrategy hotRecommendStrategy;
+    private final Map<String, RecommendStrategy> strategyMap;
 
     public RecommendationService(ShopPort shopPort,
                                   RecommendationLogMapper logMapper,
                                   RedisTemplate<String, Object> redisTemplate,
                                   @Value("${app.recommendation.cache-ttl-seconds:300}") long cacheTtlSeconds,
                                   @Qualifier("appTaskExecutor") Executor appTaskExecutor,
-                                  HybridRecommendStrategy recommendStrategy) {
+                                  HybridRecommendStrategy recommendStrategy,
+                                  AiRecommendStrategy aiRecommendStrategy,
+                                  HotRecommendStrategy hotRecommendStrategy) {
         this.shopPort = shopPort;
         this.logMapper = logMapper;
         this.redisTemplate = redisTemplate;
         this.cacheTtlSeconds = cacheTtlSeconds;
         this.appTaskExecutor = appTaskExecutor;
         this.recommendStrategy = recommendStrategy;
+        this.aiRecommendStrategy = aiRecommendStrategy;
+        this.hotRecommendStrategy = hotRecommendStrategy;
+        
+        this.strategyMap = new HashMap<>();
+        this.strategyMap.put("hybrid", recommendStrategy);
+        this.strategyMap.put("ai", aiRecommendStrategy);
+        this.strategyMap.put("hot", hotRecommendStrategy);
     }
 
     /**
@@ -61,20 +77,30 @@ public class RecommendationService {
      * @return 推荐店铺列表
      */
     public List<ShopSummary> recommend(RecommendationRequest request) {
-        String cacheKey = buildCacheKey(request);
+        return recommend(request, null);
+    }
+    
+    /**
+     * 获取推荐店铺列表（指定策略）
+     * 
+     * @param request 推荐请求参数
+     * @param strategyName 策略名称（可选）：ai, hot, hybrid
+     * @return 推荐店铺列表
+     */
+    public List<ShopSummary> recommend(RecommendationRequest request, String strategyName) {
+        String cacheKey = buildCacheKey(request, strategyName);
         
-        // 1. 尝试从缓存获取
         Object cached = redisTemplate.opsForValue().get(cacheKey);
         if (cached instanceof List) {
             List<ShopSummary> result = castList(cached);
-            logger.debug("从缓存获取推荐结果, userId={}, size={}", request.getUserId(), result.size());
+            logger.debug("从缓存获取推荐结果, userId={}, strategy={}, size={}", request.getUserId(), strategyName, result.size());
             return result;
         }
 
-        // 2. 使用推荐策略生成推荐
         List<ShopDTO> recommendedShops;
         try {
-            recommendedShops = recommendStrategy.recommend(
+            RecommendStrategy strategy = resolveStrategy(strategyName);
+            recommendedShops = strategy.recommend(
                     request.getUserId(),
                     request.getCity(),
                     request.getLongitude(),
@@ -82,19 +108,16 @@ public class RecommendationService {
                     10
             );
         } catch (Exception e) {
-            logger.error("推荐策略执行失败, userId={}, 降级为随机推荐", request.getUserId(), e);
+            logger.error("推荐策略执行失败, userId={}, strategy={}, 降级为随机推荐", request.getUserId(), strategyName, e);
             recommendedShops = fallbackRecommend(request.getCity());
         }
 
-        // 3. 转换为ShopSummary
         List<ShopSummary> result = convertToShopSummary(recommendedShops);
         
-        // 4. 写入缓存
         if (!CollectionUtils.isEmpty(result)) {
             redisTemplate.opsForValue().set(cacheKey, result, cacheTtlSeconds, TimeUnit.SECONDS);
         }
 
-        // 5. 异步记录推荐日志
         appTaskExecutor.execute(() -> {
             try {
                 recordRecommendationLogs(request, result);
@@ -104,6 +127,28 @@ public class RecommendationService {
         });
         
         return result;
+    }
+    
+    private RecommendStrategy resolveStrategy(String strategyName) {
+        if (strategyName == null || strategyName.trim().isEmpty()) {
+            return recommendStrategy;
+        }
+        RecommendStrategy strategy = strategyMap.get(strategyName.toLowerCase());
+        if (strategy == null) {
+            logger.warn("未知的策略名称: {}, 使用默认策略", strategyName);
+            return recommendStrategy;
+        }
+        if (!strategy.isSupported(null)) {
+            logger.warn("策略 {} 不可用, 使用默认策略", strategyName);
+            return recommendStrategy;
+        }
+        return strategy;
+    }
+    
+    private String buildCacheKey(RecommendationRequest request, String strategyName) {
+        String scene = request.getScene() == null ? "default" : request.getScene();
+        String strategy = strategyName == null ? "default" : strategyName;
+        return CACHE_PREFIX + request.getUserId() + ":" + request.getCity() + ":" + scene + ":" + strategy;
     }
 
     /**
@@ -191,10 +236,5 @@ public class RecommendationService {
             return (List<ShopSummary>) cached;
         }
         return new ArrayList<>();
-    }
-
-    private String buildCacheKey(RecommendationRequest request) {
-        String scene = request.getScene() == null ? "default" : request.getScene();
-        return CACHE_PREFIX + request.getUserId() + ":" + request.getCity() + ":" + scene;
     }
 }

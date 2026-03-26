@@ -25,9 +25,13 @@
             @click="setSearchMode('search')"
           >搜索</button>
           <button
-            :class="['mode-btn', searchMode === 'recommend' ? 'active' : '']"
+            :class="['mode-btn mode-btn-ai', searchMode === 'recommend' ? 'active' : '']"
             @click="setSearchMode('recommend')"
-          >智能推荐</button>
+            title="开启AI智能推荐，根据您的场景需求智能匹配店铺"
+          >
+            <span class="ai-icon" v-if="searchMode === 'recommend'">✨</span>
+            <span>AI推荐</span>
+          </button>
         </div>
         <button class="search-btn" @click="emitSearch">
           {{ searchMode === 'recommend' ? '推荐' : '搜索' }}
@@ -109,6 +113,23 @@
         </div>
       </div>
     </div>
+
+    <!-- AI推荐悬浮按钮 -->
+    <button
+      v-if="searchMode === 'recommend' && showAiFab"
+      class="ai-fab"
+      @click="openAiDialog"
+      title="AI智能对话推荐"
+    >
+      <span class="ai-fab-icon">🤖</span>
+      <span class="ai-fab-text">AI助手</span>
+    </button>
+
+    <!-- AI智能推荐对话框 -->
+    <SmartRecommendDialog
+      v-model:visible="aiDialogOpen"
+      @close="closeAiDialog"
+    />
   </div>
 </template>
 
@@ -119,10 +140,16 @@ import { useRouter } from "vue-router";
 import { RouterLink, RouterView } from "vue-router";
 import { login, logout } from "./api/auth";
 import { register, updateCity } from "./api/user";
+import SmartRecommendDialog from "./components/SmartRecommendDialog.vue";
 
 const router = useRouter();
 const keyword = ref("");
 const searchMode = ref("search");
+const aiEnabled = ref(false);
+const showAiFab = ref(true);
+const aiDialogOpen = ref(false);
+const aiInput = ref("");
+const aiLoading = ref(false);
 
 /* ---------- 城市选项 ---------- */
 const cityOptions = [
@@ -144,6 +171,13 @@ const checkLoginState = () => {
   isLoggedIn.value = !!token && !!refreshToken;
   currentUsername.value = username || "";
   currentCity.value = city || "上海";
+  
+  /* ---------- 加载AI推荐偏好 ---------- */
+  const savedAiMode = localStorage.getItem("dp_ai_recommend_enabled");
+  if (savedAiMode === "true") {
+    aiEnabled.value = true;
+    searchMode.value = "recommend";
+  }
 };
 
 onMounted(() => {
@@ -178,8 +212,15 @@ const emitSearch = () => {
     });
     return;
   }
+  /* ---------- AI推荐模式，传递strategy参数 ---------- */
+  const strategy = aiEnabled.value ? "ai" : "hot";
   window.dispatchEvent(new CustomEvent("dp-search", {
-    detail: { keyword: keyword.value, mode: searchMode.value }
+    detail: { 
+      keyword: keyword.value, 
+      mode: searchMode.value,
+      strategy: strategy,
+      aiEnabled: aiEnabled.value
+    }
   }));
 };
 
@@ -214,6 +255,14 @@ const refreshCurrentRouteByCity = (city) => {
 
 const setSearchMode = (mode) => {
   searchMode.value = mode;
+  /* ---------- 持久化AI推荐偏好 ---------- */
+  if (mode === "recommend") {
+    aiEnabled.value = true;
+    localStorage.setItem("dp_ai_recommend_enabled", "true");
+  } else {
+    aiEnabled.value = false;
+    localStorage.setItem("dp_ai_recommend_enabled", "false");
+  }
 };
 
 /* ---------- 登录/注册弹窗 ---------- */
@@ -262,6 +311,37 @@ const openLoginModal = () => {
 
 const goCreatePost = () => {
   router.push("/posts/new");
+};
+
+/* ---------- AI对话弹窗 ---------- */
+const openAiDialog = () => {
+  aiDialogOpen.value = true;
+  aiInput.value = "";
+  aiLoading.value = false;
+};
+
+const closeAiDialog = () => {
+  aiDialogOpen.value = false;
+  aiInput.value = "";
+  aiLoading.value = false;
+};
+
+const submitAiRecommend = () => {
+  if (!aiInput.value.trim() || aiLoading.value) return;
+  
+  aiLoading.value = true;
+  
+  /* 将AI输入的内容作为关键词触发推荐 */
+  keyword.value = aiInput.value.trim();
+  
+  /* 关闭弹窗并触发推荐 */
+  setTimeout(() => {
+    aiDialogOpen.value = false;
+    aiLoading.value = false;
+    emitSearch();
+    /* 滚动到推荐区域 */
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, 500);
 };
 
 const submitAuth = async () => {
@@ -962,6 +1042,247 @@ const selectCity = async (city) => {
   
   .city-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- AI推荐增强样式 ---------- */
+.mode-btn-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  position: relative;
+  overflow: hidden;
+}
+
+.mode-btn-ai.active {
+  background: linear-gradient(135deg, #FF6B35 0%, #FF8F5C 100%);
+  color: var(--text-inverse);
+  box-shadow: 0 4px 14px rgba(255, 107, 53, 0.35);
+}
+
+.mode-btn-ai.active:hover {
+  background: linear-gradient(135deg, #E85A2A 0%, #FF6B35 100%);
+  color: var(--text-inverse);
+}
+
+.ai-icon {
+  font-size: var(--text-xs);
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+@keyframes sparkle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.7; transform: scale(1.1); }
+}
+
+/* AI悬浮按钮 */
+.ai-fab {
+  position: fixed;
+  bottom: var(--space-8);
+  right: var(--space-8);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  background: linear-gradient(135deg, #FF6B35 0%, #FF8F5C 100%);
+  color: var(--text-inverse);
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  box-shadow: 0 8px 30px rgba(255, 107, 53, 0.4);
+  cursor: pointer;
+  z-index: var(--z-fixed);
+  transition: all var(--transition-base);
+  animation: slideInUp 0.4s var(--ease-out);
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ai-fab:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 40px rgba(255, 107, 53, 0.5);
+}
+
+.ai-fab:active {
+  transform: translateY(-2px) scale(0.98);
+}
+
+.ai-fab-icon {
+  font-size: var(--text-lg);
+}
+
+.ai-fab-text {
+  white-space: nowrap;
+}
+
+/* AI对话弹窗 */
+.ai-dialog-card {
+  width: 520px;
+  max-width: 92vw;
+}
+
+.ai-header-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ai-header-icon {
+  font-size: var(--text-xl);
+  animation: sparkle 2s ease-in-out infinite;
+}
+
+.ai-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.ai-welcome {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.08) 0%, rgba(255, 143, 92, 0.04) 100%);
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 107, 53, 0.1);
+}
+
+.ai-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF6B35 0%, #FF8F5C 100%);
+  display: grid;
+  place-items: center;
+  font-size: var(--text-2xl);
+  flex-shrink: 0;
+}
+
+.ai-message {
+  flex: 1;
+}
+
+.ai-message p {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  line-height: var(--leading-relaxed);
+}
+
+.ai-message p:last-child {
+  margin-bottom: var(--space-1);
+  color: var(--text-secondary);
+}
+
+.ai-message ul {
+  margin: var(--space-2) 0 0;
+  padding-left: var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.ai-message li {
+  margin-bottom: var(--space-1);
+  position: relative;
+}
+
+.ai-message li::marker {
+  color: var(--brand-primary);
+}
+
+.ai-input-area {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.ai-input {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  background: var(--bg-primary);
+  transition: all var(--transition-fast);
+}
+
+.ai-input:hover {
+  border-color: var(--neutral-400);
+}
+
+.ai-input:focus {
+  outline: none;
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 4px var(--brand-primary-light);
+}
+
+.ai-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.ai-submit-btn {
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.ai-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.ai-loading {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--text-inverse);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .ai-fab {
+    bottom: var(--space-6);
+    right: var(--space-4);
+    padding: var(--space-2) var(--space-4);
+  }
+  
+  .ai-fab-text {
+    display: none;
+  }
+  
+  .ai-dialog-card {
+    width: 100%;
+    max-width: 92vw;
+  }
+  
+  .ai-welcome {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .ai-avatar {
+    margin: 0 auto;
   }
 }
 </style>

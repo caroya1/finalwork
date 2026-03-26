@@ -1,8 +1,11 @@
 package com.dianping.post.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.dianping.common.dto.AuditRequest;
+import com.dianping.common.dto.AuditResult;
 import com.dianping.common.dto.UserSummary;
 import com.dianping.common.exception.BusinessException;
+import com.dianping.common.port.AiPort;
 import com.dianping.post.client.UserClient;
 import com.dianping.post.dto.CommentDTO;
 import com.dianping.post.dto.PostCreateRequest;
@@ -14,6 +17,7 @@ import com.dianping.post.mapper.PostMapper;
 import com.dianping.common.dto.ShopSummary;
 import com.dianping.common.dto.PostSummary;
 import com.dianping.common.port.ShopPort;
+import feign.FeignException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -35,6 +39,10 @@ public class PostService {
     private static final Logger log = LoggerFactory.getLogger(PostService.class);
     private static final String POST_CACHE_PREFIX = "dp:post:";
 
+    private static final int AUDIT_STATUS_PENDING = 0;
+    private static final int AUDIT_STATUS_APPROVED = 1;
+    private static final int AUDIT_STATUS_REJECTED = 2;
+
     private final PostMapper postMapper;
     private final PostLikeService postLikeService;
     private final PostCommentMapper postCommentMapper;
@@ -44,6 +52,7 @@ public class PostService {
     private final RedisTemplate<String, Object> redisTemplate;
     private final long cacheTtlSeconds;
     private final com.dianping.common.util.SensitiveWordFilter sensitiveWordFilter;
+    private final AiPort aiPort;
 
     public PostService(PostMapper postMapper, PostLikeService postLikeService,
                        PostCommentMapper postCommentMapper, ShopPort shopPort,
@@ -51,7 +60,8 @@ public class PostService {
                        @Qualifier("appTaskExecutor") Executor appTaskExecutor,
                        RedisTemplate<String, Object> redisTemplate,
                        @Value("${app.post.cache-ttl-seconds:300}") long cacheTtlSeconds,
-                       com.dianping.common.util.SensitiveWordFilter sensitiveWordFilter) {
+                       com.dianping.common.util.SensitiveWordFilter sensitiveWordFilter,
+                       AiPort aiPort) {
         this.postMapper = postMapper;
         this.postLikeService = postLikeService;
         this.postCommentMapper = postCommentMapper;
@@ -61,10 +71,12 @@ public class PostService {
         this.redisTemplate = redisTemplate;
         this.cacheTtlSeconds = cacheTtlSeconds;
         this.sensitiveWordFilter = sensitiveWordFilter;
+        this.aiPort = aiPort;
     }
 
     public List<Post> list(String city, String keyword, Long shopId) {
         LambdaQueryWrapper<Post> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Post::getAuditStatus, AUDIT_STATUS_APPROVED);
         if (city != null && !city.trim().isEmpty()) {
             wrapper.eq(Post::getCity, city);
         }
@@ -103,6 +115,7 @@ public class PostService {
     public List<Post> listByUser(Long userId) {
         return postMapper.selectList(new LambdaQueryWrapper<Post>()
                 .eq(Post::getUserId, userId)
+                .eq(Post::getAuditStatus, AUDIT_STATUS_APPROVED)
                 .orderByDesc(Post::getCreatedAt));
     }
 
@@ -168,6 +181,11 @@ public class PostService {
         List<PostComment> comments = commentsFuture.join();
         String authorUsername = authorNameFuture.join();
         
+        // 在内存中过滤被拒绝的评论（auditStatus字段不存在于数据库）
+        comments = comments.stream()
+                .filter(c -> c.getAuditStatus() == null || c.getAuditStatus() != AUDIT_STATUS_REJECTED)
+                .collect(Collectors.toList());
+        
         List<CommentDTO> commentDTOs = enrichCommentsWithUsername(comments);
         
         return new PostDetailResponse(post, authorUsername, likeCount, liked, followed, shop, commentDTOs);
@@ -214,7 +232,7 @@ public class PostService {
         if (userId == null) {
             throw new BusinessException("userId is required");
         }
-        // 敏感词检测
+        // 敏感词检测（前置过滤）
         String title = request.getTitle().trim();
         String content = request.getContent().trim();
         if (sensitiveWordFilter.containsSensitiveWord(title)) {
@@ -238,10 +256,48 @@ public class PostService {
         post.setCity(resolveCity(request.getCity(), request.getShopId()));
         post.setTags(request.getTags());
         post.setLikes(0);
+
+        // AI审核
+        performAudit(post, title, content);
+
         post.touchForCreate();
         postMapper.insert(post);
         safeSet(buildPostCacheKey(post.getId()), post, cacheTtlSeconds, TimeUnit.SECONDS);
         return post;
+    }
+
+    /**
+     * 执行AI内容审核
+     * @param post 帖子实体
+     * @param title 标题
+     * @param content 内容
+     */
+    private void performAudit(Post post, String title, String content) {
+        String auditContent = title + "\n" + content;
+        AuditRequest auditRequest = new AuditRequest(auditContent, "POST", post.getId());
+
+        try {
+            AuditResult result = aiPort.audit(auditRequest);
+            if (result != null && Boolean.TRUE.equals(result.getApproved())) {
+                post.setAuditStatus(AUDIT_STATUS_APPROVED);
+                post.setAuditRemark(null);
+            } else {
+                post.setAuditStatus(AUDIT_STATUS_REJECTED);
+                post.setAuditRemark(result != null ? result.getReason() : "内容审核未通过");
+                throw new BusinessException("内容审核未通过: " + post.getAuditRemark());
+            }
+        } catch (FeignException e) {
+            log.warn("AI审核服务不可用，使用敏感词过滤器作为降级方案: {}", e.getMessage());
+            // 降级：使用敏感词过滤器
+            if (sensitiveWordFilter.containsSensitiveWord(auditContent)) {
+                post.setAuditStatus(AUDIT_STATUS_REJECTED);
+                post.setAuditRemark("包含敏感词: " + sensitiveWordFilter.getSensitiveWords(auditContent));
+                throw new BusinessException("内容审核未通过: " + post.getAuditRemark());
+            } else {
+                post.setAuditStatus(AUDIT_STATUS_APPROVED);
+                post.setAuditRemark(null);
+            }
+        }
     }
 
     public void delete(Long postId, Long userId) {

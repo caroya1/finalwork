@@ -34,6 +34,12 @@ public class Post {
 
     private LocalDateTime updatedAt;
 
+    private String visibility;
+
+    private String status;
+
+    private LocalDateTime deletedAt;
+
     public void touchForCreate() {
         LocalDateTime now = LocalDateTime.now();
         this.createdAt = now;
@@ -136,6 +142,30 @@ public class Post {
 
     public void setAuditRemark(String auditRemark) {
         this.auditRemark = auditRemark;
+    }
+
+    public String getVisibility() {
+        return visibility;
+    }
+
+    public void setVisibility(String visibility) {
+        this.visibility = visibility;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
     }
 
     public LocalDateTime getCreatedAt() {

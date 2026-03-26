@@ -27,8 +27,10 @@ public class RecommendationWarmupRunner extends WarmupRunner {
     
     @Override
     protected void warmupBusiness() {
-        warmupFeignClient();
-        warmupHotRecommendations();
+        // 暂时禁用预热，测试是否能正常启动
+        logger.info("[recommendation-service] 预热已禁用，用于调试");
+        // warmupFeignClient();
+        // warmupHotRecommendations();
     }
     
     private void warmupFeignClient() {
