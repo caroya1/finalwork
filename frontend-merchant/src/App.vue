@@ -1,30 +1,12 @@
 <template>
   <div class="app-shell">
-    <header class="app-header">
-      <div class="brand">
-        <span class="brand-mark">DP</span>
-        <div>
-          <h1>商户中心</h1>
-          <p>门店 · 优惠券 · 运营</p>
-        </div>
-      </div>
-      <nav class="nav">
-        <RouterLink to="/">门店管理</RouterLink>
-      </nav>
-      <div class="header-actions" v-if="!isLoggedIn">
-        <button class="ghost-btn" @click="openAuth('login')">登录</button>
-        <button class="cta" @click="openAuth('register')">注册</button>
-      </div>
-      <div class="header-actions" v-else>
-        <span class="user-info">{{ currentUsername }}</span>
-        <button class="ghost-btn" @click="doLogout">退出</button>
-      </div>
-    </header>
-    <main class="app-main">
+    <NavHeader v-if="isLoggedIn" />
+    <main class="app-main" :class="{ 'with-nav': isLoggedIn }">
       <RouterView />
     </main>
+    <Toast ref="toastRef" />
 
-    <div v-if="authOpen" class="auth-overlay" @click.self="closeAuth">
+    <div v-if="authOpen && !isLoggedIn" class="auth-overlay" @click.self="closeAuth">
       <div class="auth-card">
         <div class="auth-header">
           <h2>{{ authMode === 'login' ? '登录' : '注册' }}</h2>
@@ -69,11 +51,20 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { useRouter, RouterLink, RouterView } from "vue-router";
-import { logout } from "./api/auth";
+import { useRouter, RouterView } from "vue-router";
+import NavHeader from "./components/NavHeader.vue";
+import Toast from "./components/Toast.vue";
 import { merchantLogin, merchantRegister } from "./api/merchant";
+import { setToastInstance } from "./utils/toast";
 
 const router = useRouter();
+const toastRef = ref(null);
+
+onMounted(() => {
+  if (toastRef.value) {
+    setToastInstance(toastRef.value);
+  }
+});
 const cityOptions = [
   "上海", "北京", "广州", "深圳", "杭州",
   "南京", "成都", "重庆", "武汉", "西安",
@@ -81,13 +72,11 @@ const cityOptions = [
 ];
 
 const isLoggedIn = ref(false);
-const currentUsername = ref("");
 
 const checkLoginState = () => {
   const token = localStorage.getItem("dp_token") || localStorage.getItem("dp_merchant_token");
   const merchantId = localStorage.getItem("dp_merchant_id");
   isLoggedIn.value = !!(token && merchantId);
-  currentUsername.value = localStorage.getItem("dp_username") || localStorage.getItem("dp_merchant_name") || "";
 };
 
 onMounted(checkLoginState);
@@ -185,7 +174,6 @@ const submitAuth = async () => {
     localStorage.setItem("dp_city", authForm.value.city || "上海");
 
     isLoggedIn.value = true;
-    currentUsername.value = loginResp.data.name || authForm.value.email;
     authOpen.value = false;
     router.push("/");
   } catch {
@@ -193,30 +181,10 @@ const submitAuth = async () => {
     authMessageType.value = "error";
   }
 };
-
-const doLogout = async () => {
-  const refreshToken = localStorage.getItem("dp_refresh_token");
-  const accessToken = localStorage.getItem("dp_token");
-  if (refreshToken || accessToken) {
-    try {
-      await logout(refreshToken || null, accessToken || null);
-    } catch {
-      // ignore
-    }
-  }
-  localStorage.removeItem("dp_token");
-  localStorage.removeItem("dp_merchant_token");
-  localStorage.removeItem("dp_merchant_id");
-  localStorage.removeItem("dp_merchant_name");
-  localStorage.removeItem("dp_merchant_email");
-  localStorage.removeItem("dp_user_id");
-  localStorage.removeItem("dp_refresh_token");
-  localStorage.removeItem("dp_username");
-  localStorage.removeItem("dp_role");
-  localStorage.removeItem("dp_city");
-  localStorage.removeItem("dp_balance");
-  isLoggedIn.value = false;
-  currentUsername.value = "";
-  router.push("/");
-};
 </script>
+
+<style>
+.app-main.with-nav {
+  padding-top: calc(var(--header-height) + var(--space-6));
+}
+</style>

@@ -24,7 +24,7 @@
     </div>
 
     <div class="hero-card">
-      <h2>创建门店</h2>
+      <h2>{{ editingShopId ? '编辑门店' : '创建门店' }}</h2>
       <div class="form-grid">
         <input v-model="shopForm.name" placeholder="门店名称" />
         <input v-model="shopForm.category" placeholder="分类" />
@@ -34,7 +34,12 @@
         <input v-model="shopForm.businessHours" placeholder="营业时间，例如 10:00-22:00" />
         <input v-model="shopForm.contactPhone" placeholder="联系电话" />
         <input type="file" accept="image/*" @change="onShopImageChange" />
-        <button class="cta" @click="submitShop">创建门店</button>
+        <div v-if="shopForm.imagePreview" class="image-preview">
+          <img :src="shopForm.imagePreview" alt="店铺图片预览" />
+          <button type="button" class="remove-btn" @click="shopForm.imagePreview = ''; shopForm.imageUrl = ''">×</button>
+        </div>
+        <button class="cta" @click="submitShop">{{ editingShopId ? '更新门店' : '创建门店' }}</button>
+        <button v-if="editingShopId" class="ghost-btn" @click="resetShopForm">取消编辑</button>
         <span>{{ shopMessage }}</span>
       </div>
     </div>
@@ -82,6 +87,7 @@
             <span class="tag">{{ shop.category || "综合" }}</span>
             <span class="tag">{{ shop.city || "-" }}</span>
             <span class="tag">审核 {{ shop.auditStatus }}</span>
+            <button class="ghost-btn" @click="editShop(shop)">编辑</button>
           </div>
         </div>
         <div v-if="shopList.length === 0" class="list-item">暂无门店</div>
@@ -95,6 +101,10 @@
         <input v-model.number="dishForm.price" type="number" step="0.01" placeholder="价格" />
         <input v-model="dishForm.description" placeholder="描述" />
         <input type="file" accept="image/*" @change="onDishImageChange" />
+        <div v-if="dishForm.imagePreview" class="image-preview">
+          <img :src="dishForm.imagePreview" alt="菜品图片预览" />
+          <button type="button" class="remove-btn" @click="dishForm.imagePreview = ''; dishForm.imageUrl = ''">×</button>
+        </div>
         <button class="cta" @click="submitDish">新增菜品</button>
         <span>{{ dishMessage }}</span>
       </div>
@@ -159,6 +169,7 @@
 import { ref, onMounted, watch } from "vue";
 import {
   createShop,
+  updateShop,
   listMyShops,
   createCoupon,
   listCouponsByShop,
@@ -182,7 +193,8 @@ const shopForm = ref({
   address: "",
   businessHours: "",
   contactPhone: "",
-  imageUrl: ""
+  imageUrl: "",
+  imagePreview: ""
 });
 const shopMessage = ref("");
 
@@ -203,7 +215,8 @@ const dishForm = ref({
   name: "",
   price: 0,
   description: "",
-  imageUrl: ""
+  imageUrl: "",
+  imagePreview: ""
 });
 const dishMessage = ref("");
 
@@ -215,23 +228,86 @@ const couponList = ref([]);
 const shopStats = ref(null);
 const activeShopId = ref("");
 const orderStatusFilter = ref("");
+const editingShopId = ref(null);
 
+/**
+ * Load merchant's shops from the backend.
+ * Auto-selects the first shop if none is selected.
+ * @async
+ * @returns {Promise<void>}
+ */
 const loadShops = async () => {
   try {
+    // 检查localStorage中的认证信息
+    const token = localStorage.getItem("dp_token");
+    const merchantId = localStorage.getItem("dp_merchant_id");
+    
+    if (!token) {
+      dashboardMessage.value = "错误：未找到登录凭证，请重新登录";
+      console.error("[loadShops] 未找到dp_token");
+      return;
+    }
+    if (!merchantId) {
+      dashboardMessage.value = "错误：未找到商户ID，请重新登录";
+      console.error("[loadShops] 未找到dp_merchant_id");
+      return;
+    }
+    
+    console.log("[loadShops] 正在加载门店列表...", { token: token.substring(0, 20) + "...", merchantId });
+    
     const response = await listMyShops();
-    console.log("loadShops response:", response);
+    console.log("[loadShops] API响应:", response);
+    
     if (response.success) {
       shopList.value = response.data || [];
+      console.log("[loadShops] 加载成功，门店数量:", shopList.value.length);
       if (!activeShopId.value && shopList.value.length > 0) {
         activeShopId.value = String(shopList.value[0].id);
       }
     } else {
-      dashboardMessage.value = response.message || "获取门店列表失败";
+      dashboardMessage.value = "获取门店列表失败: " + (response.message || "未知错误");
+      console.error("[loadShops] API返回错误:", response.message);
     }
   } catch (error) {
-    console.error("loadShops error:", error);
-    dashboardMessage.value = "获取门店列表失败: " + (error.message || "网络错误");
+    const errorMsg = error.userMessage || error.message || "网络错误";
+    dashboardMessage.value = "获取门店列表失败: " + errorMsg;
+    console.error("[loadShops] 异常:", error);
+    
+    // 如果是401/403，错误拦截器会自动跳转登录页
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      dashboardMessage.value = "登录已过期，正在跳转到登录页...";
+    }
   }
+};
+
+const resetShopForm = () => {
+  shopForm.value = {
+    name: "",
+    category: "",
+    city: "上海",
+    tags: "",
+    address: "",
+    businessHours: "",
+    contactPhone: "",
+    imageUrl: "",
+    imagePreview: ""
+  };
+  editingShopId.value = null;
+};
+
+const editShop = (shop) => {
+  editingShopId.value = shop.id;
+  shopForm.value = {
+    name: shop.name,
+    category: shop.category,
+    city: shop.city,
+    tags: shop.tags || "",
+    address: shop.address || "",
+    businessHours: shop.businessHours || "",
+    contactPhone: shop.contactPhone || "",
+    imageUrl: shop.imageUrl || "",
+    imagePreview: shop.imageUrl || ""
+  };
 };
 
 const submitShop = async () => {
@@ -240,19 +316,36 @@ const submitShop = async () => {
     shopMessage.value = "请填写门店名称、分类和城市";
     return;
   }
-  const response = await createShop(shopForm.value);
-  shopMessage.value = response.success ? "门店创建成功" : response.message || "门店创建失败";
+  
+  // 检查敏感词（简单的本地检查）
+  const sensitiveWords = ['测试', 'test', 'TEST'];
+  const nameLower = shopForm.value.name.toLowerCase();
+  const hasSensitiveWord = sensitiveWords.some(word => nameLower.includes(word.toLowerCase()));
+  if (hasSensitiveWord) {
+    shopMessage.value = "提示：店铺名称包含'测试'等敏感词可能导致审核被拒绝，建议使用真实店铺名称";
+    // 继续提交，但给出警告
+  }
+  
+  let response;
+  if (editingShopId.value) {
+    response = await updateShop(editingShopId.value, shopForm.value);
+    shopMessage.value = response.success ? "门店更新成功" : response.message || "门店更新失败";
+  } else {
+    response = await createShop(shopForm.value);
+    if (response.success) {
+      shopMessage.value = "门店创建成功";
+    } else {
+      // 检查是否是审核拒绝的错误
+      if (response.message && response.message.includes("Content violates")) {
+        shopMessage.value = "创建失败：内容违反社区规范（可能包含敏感词'测试'等）。请使用真实店铺名称重试。";
+      } else {
+        shopMessage.value = response.message || "门店创建失败";
+      }
+    }
+  }
+  
   if (response.success) {
-    shopForm.value = {
-      name: "",
-      category: "",
-      city: "上海",
-      tags: "",
-      address: "",
-      businessHours: "",
-      contactPhone: "",
-      imageUrl: ""
-    };
+    resetShopForm();
     await loadShops();
   }
 };
@@ -329,7 +422,7 @@ const submitDish = async () => {
   const response = await createDish(Number(activeShopId.value), dishForm.value);
   dishMessage.value = response.success ? "菜品新增成功" : response.message || "新增失败";
   if (response.success) {
-    dishForm.value = { name: "", price: 0, description: "", imageUrl: "" };
+    dishForm.value = { name: "", price: 0, description: "", imageUrl: "", imagePreview: "" };
     await loadDishes();
   }
 };
@@ -395,6 +488,15 @@ const loadShopAssets = async () => {
 const onShopImageChange = async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
+  
+  // 立即显示本地预览
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    shopForm.value.imagePreview = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  
+  // 上传到服务器
   const response = await uploadImage(file, "shops");
   if (response.success) {
     shopForm.value.imageUrl = response.data?.url || "";
@@ -407,6 +509,15 @@ const onShopImageChange = async (event) => {
 const onDishImageChange = async (event) => {
   const file = event.target.files?.[0];
   if (!file) return;
+  
+  // 立即显示本地预览
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    dishForm.value.imagePreview = e.target.result;
+  };
+  reader.readAsDataURL(file);
+  
+  // 上传到服务器
   const response = await uploadImage(file, "dishes");
   if (response.success) {
     dishForm.value.imageUrl = response.data?.url || "";
@@ -540,6 +651,46 @@ onMounted(async () => {
 
 .form-grid .cta {
   align-self: flex-start;
+}
+
+/* ========== Image Preview ========== */
+.image-preview {
+  position: relative;
+  display: inline-block;
+  width: 100px;
+  height: 100px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 2px solid var(--border-light);
+  margin-top: var(--space-2);
+}
+
+.image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-preview .remove-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  border: none;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-preview .remove-btn:hover {
+  background: rgba(220, 53, 69, 0.9);
 }
 
 /* ========== List Enhancements ========== */

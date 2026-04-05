@@ -1,5 +1,6 @@
 import client from "./client";
 
+// 店铺管理
 export const createShop = (payload) =>
   client.post("/api/merchant/shops", payload).then((res) => res.data);
 
@@ -12,6 +13,7 @@ export const updateShop = (shopId, payload) =>
 export const deleteShop = (shopId) =>
   client.delete(`/api/merchant/shops/${shopId}`).then((res) => res.data);
 
+// 菜品管理
 export const listDishes = (shopId) =>
   client.get(`/api/merchant/shops/${shopId}/dishes`).then((res) => res.data);
 
@@ -24,12 +26,14 @@ export const updateDish = (shopId, dishId, payload) =>
 export const deleteDish = (shopId, dishId) =>
   client.delete(`/api/merchant/shops/${shopId}/dishes/${dishId}`).then((res) => res.data);
 
+// 优惠券管理
 export const createCoupon = (payload) =>
   client.post("/api/merchant/coupons", payload).then((res) => res.data);
 
 export const listCouponsByShop = (shopId) =>
   client.get(`/api/merchant/coupons/shop/${shopId}`).then((res) => res.data);
 
+// 订单管理
 export const listOrdersByShop = (shopId, status) =>
   client.get(`/api/orders/shop/${shopId}`, { params: { status } }).then((res) => res.data);
 

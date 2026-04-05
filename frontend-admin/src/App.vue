@@ -1,30 +1,11 @@
 <template>
   <div class="app-shell">
-    <header class="app-header">
-      <div class="brand">
-        <span class="brand-mark">DP</span>
-        <div>
-          <h1>运营后台</h1>
-          <p>订单 · 运营 · 风控</p>
-        </div>
-      </div>
-      <nav class="nav">
-        <RouterLink to="/">订单中心</RouterLink>
-        <RouterLink to="/audit-records">审核记录</RouterLink>
-      </nav>
-      <div class="header-actions" v-if="!isLoggedIn">
-        <button class="ghost-btn" @click="openAuth">管理员登录</button>
-      </div>
-      <div class="header-actions" v-else>
-        <span class="user-info">{{ currentUsername }}</span>
-        <button class="ghost-btn" @click="doLogout">退出</button>
-      </div>
-    </header>
-    <main class="app-main">
+    <SideNav v-if="isLoggedIn" />
+    <main class="app-main" :class="{ 'with-sidebar': isLoggedIn }">
       <RouterView />
     </main>
 
-    <div v-if="authOpen" class="auth-overlay" @click.self="closeAuth">
+    <div v-if="authOpen && !isLoggedIn" class="auth-overlay" @click.self="closeAuth">
       <div class="auth-card">
         <div class="auth-header">
           <h2>管理员登录</h2>
@@ -45,20 +26,18 @@
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { useRouter, RouterLink, RouterView } from "vue-router";
-import { adminLogin, logout } from "./api/auth";
+import { useRouter, RouterView } from "vue-router";
+import SideNav from "./components/SideNav.vue";
+import { adminLogin } from "./api/auth";
 
 const router = useRouter();
 
 const isLoggedIn = ref(false);
-const currentUsername = ref("");
 
 const checkLoginState = () => {
   const token = localStorage.getItem("dp_token");
   const refreshToken = localStorage.getItem("dp_refresh_token");
-  const username = localStorage.getItem("dp_username");
   isLoggedIn.value = !!token && !!refreshToken;
-  currentUsername.value = username || "";
 };
 
 onMounted(checkLoginState);
@@ -106,7 +85,6 @@ const submitAuth = async () => {
     localStorage.setItem("dp_role", "admin");
     localStorage.setItem("dp_city", loginResp.data.city || "");
     isLoggedIn.value = true;
-    currentUsername.value = loginResp.data.username || authForm.value.username;
     authOpen.value = false;
     router.push("/");
   } catch {
@@ -114,26 +92,17 @@ const submitAuth = async () => {
     authMessageType.value = "error";
   }
 };
-
-const doLogout = async () => {
-  const refreshToken = localStorage.getItem("dp_refresh_token");
-  const accessToken = localStorage.getItem("dp_token");
-  if (refreshToken || accessToken) {
-    try {
-      await logout(refreshToken || null, accessToken || null);
-    } catch {
-      // ignore
-    }
-  }
-  localStorage.removeItem("dp_token");
-  localStorage.removeItem("dp_user_id");
-  localStorage.removeItem("dp_refresh_token");
-  localStorage.removeItem("dp_username");
-  localStorage.removeItem("dp_role");
-  localStorage.removeItem("dp_city");
-  localStorage.removeItem("dp_balance");
-  isLoggedIn.value = false;
-  currentUsername.value = "";
-  router.push("/");
-};
 </script>
+
+<style>
+.app-main.with-sidebar {
+  margin-left: var(--sidebar-width);
+  max-width: none;
+}
+
+@media (max-width: 768px) {
+  .app-main.with-sidebar {
+    margin-left: 64px;
+  }
+}
+</style>
