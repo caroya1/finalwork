@@ -35,9 +35,17 @@ public class AiAuditService {
     @Value("${ai.monitoring.cost-alert-threshold:100}")
     private double costAlertThreshold;
 
+    @Value("${ai.audit.enabled:true}")
+    private boolean auditEnabled;
+
     @CircuitBreaker(name = CIRCUIT_BREAKER_NAME, fallbackMethod = "circuitBreakerFallback")
     @RateLimiter(name = RATE_LIMITER_NAME, fallbackMethod = "rateLimiterFallback")
     public AuditResult audit(String text, String auditType) {
+        // 开发环境可禁用AI审核
+        if (!auditEnabled) {
+            logger.info("AI审核已禁用，直接通过: {}", text);
+            return new AuditResult(true, null, 1.0, auditType);
+        }
         return audit(text, auditType, 0);
     }
 
