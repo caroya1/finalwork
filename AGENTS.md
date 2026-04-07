@@ -82,11 +82,14 @@
 
 ## ANTI-PATTERNS (THIS PROJECT)
 
-| Issue | Location | Severity |
-|-------|----------|----------|
-| **内部API安全未启用** | `common/InternalApiFilter.java:52` | HIGH |
-| **@SuppressWarnings** | `MerchantService.java`, `AiRecommendStrategy.java` | LOW |
-| **@Deprecated 类** | `coupon/dto/UserCouponView.java` | LOW |
+| Issue | Location | Severity | Details |
+|-------|----------|----------|---------|
+| **内部API安全未启用** | `common/InternalApiFilter.java:52` | HIGH | 开发模式跳过token验证，生产环境需启用 |
+| **@SuppressWarnings("unchecked")** | `merchant/MerchantService.java:148` | LOW | Redis缓存类型转换 |
+| **@SuppressWarnings("unchecked")** | `recommendation/AiRecommendStrategy.java:64` | LOW | Redis缓存类型转换 |
+| **@Deprecated 类** | `coupon/dto/UserCouponView.java` | LOW | 继承common的DTO，无额外功能 |
+| **网关路由ID拼写错误** | `nacos-config/dianping-gateway.yml:20` | LOW | "user-servicen" 应为 "user-service" |
+| **非标准Nacos命名** | `nacos-config/dianping-gateway.yml` | LOW | 应为 `gateway.yml` |
 
 **Critical**: 生产环境需启用 `InternalApiFilter` 中的 token 验证 (当前TODO注释)。
 
@@ -150,6 +153,28 @@ import-to-nacos.bat http://192.168.145.128:8848    # Windows
 
 ---
 
+## TESTING
+
+### Test Framework
+- **JUnit 5** + **Mockito** + **Spring Boot Test**
+- **H2 Database** for integration tests
+- **No Maven Wrapper**: Use system `mvn` command
+
+### Test Conventions
+- All tests in `src/test/java/com/dianping/{service}/`
+- Integration tests use `@TestPropertySource` (no application-test.yml)
+- Nacos disabled in tests: `spring.cloud.nacos.config.enabled=false`
+
+### Stress Test
+```bash
+# 秒杀压力测试 - 1000并发，50库存
+cd services/coupon-service
+mvn spring-boot:run -Dspring-boot.run.arguments=stress-test
+
+# 或调用API
+POST /api/stress-test/seckill-stress?userCount=1000&stockCount=50
+```
+
 ## NOTES
 
 - **Gateway 位置特殊**: 在根目录而非 services/ 下
@@ -157,4 +182,4 @@ import-to-nacos.bat http://192.168.145.128:8848    # Windows
 - **无 root pom.xml**: services/pom.xml 是实际parent
 - **无 TypeScript**: 纯 JavaScript (ES6+)
 - **日志位置**: `./logs/` 目录
-- **压力测试**: `SeckillStressTest` 在 coupon-service，启动参数 `stress-test`
+- **无 Docker/CI/CD**: 纯手动部署
