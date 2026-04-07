@@ -1,4 +1,4 @@
-package com.dianping.user.client;
+package com.dianping.order.client;
 
 import com.dianping.common.dto.ConsumeCouponResult;
 import com.dianping.common.dto.UserCouponView;
@@ -12,6 +12,7 @@ import java.util.List;
 
 @FeignClient(name = "coupon-service")
 public interface CouponClient extends CouponPort {
+
     @Override
     @GetMapping("/internal/coupons/user")
     List<UserCouponView> listByUser(@RequestParam("userId") Long userId);

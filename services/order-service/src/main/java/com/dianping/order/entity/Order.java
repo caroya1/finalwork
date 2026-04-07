@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.dianping.order.enums.OrderStatus;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 
 @TableName("dp_order")
@@ -19,9 +20,13 @@ public class Order {
 
     private Long couponId;
 
+    private Long couponPurchaseId;
+
     private Integer amount;
 
     private Integer payAmount;
+
+    private Integer discountAmount;
 
     private Integer status;
 
@@ -50,6 +55,7 @@ public class Order {
         this.updatedAt = LocalDateTime.now();
     }
 
+    @JsonIgnore
     public OrderStatus getStatusEnum() {
         return OrderStatus.fromCode(this.status);
     }
@@ -94,6 +100,14 @@ public class Order {
         this.couponId = couponId;
     }
 
+    public Long getCouponPurchaseId() {
+        return couponPurchaseId;
+    }
+
+    public void setCouponPurchaseId(Long couponPurchaseId) {
+        this.couponPurchaseId = couponPurchaseId;
+    }
+
     public Integer getAmount() {
         return amount;
     }
@@ -108,6 +122,14 @@ public class Order {
 
     public void setPayAmount(Integer payAmount) {
         this.payAmount = payAmount;
+    }
+
+    public Integer getDiscountAmount() {
+        return discountAmount;
+    }
+
+    public void setDiscountAmount(Integer discountAmount) {
+        this.discountAmount = discountAmount;
     }
 
     public Integer getStatus() {

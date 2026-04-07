@@ -48,8 +48,8 @@
           <div class="coupon-desc">{{ coupon.description || '限店铺使用' }}</div>
           <div class="coupon-meta">
             <span class="tag">{{ coupon.type === 'seckill' ? '特价券' : '平价券' }}</span>
-            <span class="tag">优惠 ¥{{ coupon.discountAmount }}</span>
-            <span class="tag">购入 ¥{{ coupon.price || 0 }}</span>
+            <span class="tag">优惠 ¥{{ (coupon.discountAmount / 100).toFixed(2) }}</span>
+            <span class="tag">购入 ¥{{ ((coupon.price || 0) / 100).toFixed(2) }}</span>
             <span class="tag">{{ coupon.status }}</span>
             <span v-if="coupon.refundReason" class="tag">退款原因：{{ coupon.refundReason }}</span>
           </div>
@@ -63,6 +63,47 @@
       </div>
     </section>
 
+    <section class="profile-section">
+      <div class="section-header">
+        <h3>我的订单</h3>
+      </div>
+      <div v-if="orders.length === 0" class="empty-state">暂无订单</div>
+      <div v-else class="orders-list">
+        <div v-for="order in orders" :key="order.id" class="order-card">
+          <div class="order-header">
+            <span class="order-no">{{ order.orderNo }}</span>
+            <span :class="['order-status', `status-${order.status}`]">{{ getStatusText(order.status) }}</span>
+          </div>
+          <div class="order-body">
+            <div class="order-info-row">
+              <span class="label">店铺ID:</span>
+              <span class="value">{{ order.shopId }}</span>
+            </div>
+            <div class="order-info-row">
+              <span class="label">消费金额:</span>
+              <span class="value">¥{{ (order.amount / 100).toFixed(2) }}</span>
+            </div>
+            <div class="order-info-row" v-if="order.discountAmount">
+              <span class="label">优惠金额:</span>
+              <span class="value discount">-¥{{ (order.discountAmount / 100).toFixed(2) }}</span>
+            </div>
+            <div class="order-info-row">
+              <span class="label">实付金额:</span>
+              <span class="value pay">¥{{ (order.payAmount / 100).toFixed(2) }}</span>
+            </div>
+            <div class="order-info-row" v-if="order.createdAt">
+              <span class="label">下单时间:</span>
+              <span class="value">{{ new Date(order.createdAt).toLocaleString() }}</span>
+            </div>
+          </div>
+          <div class="order-actions" v-if="canCancel(order.status)">
+            <button class="ghost-btn cancel-btn" @click="handleCancelOrder(order.id)">取消订单</button>
+          </div>
+        </div>
+      </div>
+      <div v-if="orderMessage" class="order-message">{{ orderMessage }}</div>
+    </section>
+
     <div v-if="refundOpen" class="auth-overlay" @click.self="closeRefund">
       <div class="auth-card refund-card">
         <div class="confirm-header">
@@ -71,7 +112,7 @@
         </div>
         <p class="confirm-title">{{ selectedPurchase?.title }}</p>
         <div class="confirm-meta">
-          <span class="tag">购入 ¥{{ selectedPurchase?.price || 0 }}</span>
+          <span class="tag">购入 ¥{{ ((selectedPurchase?.price || 0) / 100).toFixed(2) }}</span>
         </div>
         <select v-model="refundReason" class="form-select">
           <option value="" disabled>请选择退款原因</option>
@@ -93,6 +134,7 @@ import { useRouter } from "vue-router";
 import { RouterLink } from "vue-router";
 import { rechargeBalance } from "../api/user";
 import { refundCoupon } from "../api/shop";
+import { cancelOrder } from "../api/order";
 import client from "../api/client";
 
 const profile = ref(null);
@@ -115,10 +157,39 @@ const refundReasons = [
   "其他"
 ];
 
+const orders = ref([]);
+const orderMessage = ref("");
+
+const statusMap = {
+  0: "待支付",
+  1: "已支付",
+  2: "已核销",
+  3: "已退款",
+  4: "已取消"
+};
+
+const handleCancelOrder = async (orderId) => {
+  if (!confirm("确定要取消这个订单吗？")) return;
+  try {
+    const res = await cancelOrder(orderId, "用户主动取消");
+    if (res.success) {
+      orderMessage.value = "订单已取消";
+      await loadOrders();
+    } else {
+      orderMessage.value = res.message || "取消失败";
+    }
+  } catch (e) {
+    orderMessage.value = "取消失败，请重试";
+  }
+};
+
+const getStatusText = (status) => statusMap[status] || "未知";
+const canCancel = (status) => status === 0;
+
 const balanceDisplay = computed(() => {
   if (!profile.value || profile.value.balance == null) return "0.00";
-  const value = Number(profile.value.balance);
-  return Number.isNaN(value) ? profile.value.balance : value.toFixed(2);
+  const value = Number(profile.value.balance) / 100;
+  return Number.isNaN(value) ? (profile.value.balance / 100).toFixed(2) : value.toFixed(2);
 });
 
 const requireLogin = () => {
@@ -142,6 +213,7 @@ const loadProfile = async () => {
     profile.value = response.data.data;
     posts.value = response.data.data.posts || [];
     coupons.value = response.data.data.coupons || [];
+    orders.value = response.data.data.orders || [];
     if (profile.value.balance != null) {
       localStorage.setItem("dp_balance", String(profile.value.balance));
     }
@@ -160,7 +232,7 @@ const doRecharge = async () => {
     rechargeMessage.value = "充值金额需大于 0";
     return;
   }
-  const res = await rechargeBalance(userId, Number(rechargeAmount.value));
+  const res = await rechargeBalance(userId, Number(rechargeAmount.value) * 100);
   if (res.success) {
     rechargeMessage.value = "充值成功";
     await loadProfile();
@@ -213,7 +285,9 @@ const submitRefund = async () => {
   refundMessageType.value = "error";
 };
 
-onMounted(loadProfile);
+onMounted(() => {
+  loadProfile();
+});
 </script>
 
 <style scoped>
@@ -323,5 +397,100 @@ onMounted(loadProfile);
   .profile-hero {
     grid-template-columns: 1fr;
   }
+}
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.order-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+.order-no {
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.order-status {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-0 { background: #FFF3E0; color: #E65100; }
+.status-1 { background: #E3F2FD; color: #1565C0; }
+.status-2 { background: #E8F5E9; color: #2E7D32; }
+.status-3 { background: #F3E5F5; color: #7B1FA2; }
+.status-4 { background: #EEEEEE; color: #616161; }
+
+.order-body {
+  margin-bottom: 12px;
+}
+
+.order-info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  font-size: 0.9rem;
+}
+
+.order-info-row .label {
+  color: var(--muted);
+}
+
+.order-info-row .value {
+  font-weight: 500;
+}
+
+.order-info-row .discount {
+  color: #4caf50;
+}
+
+.order-info-row .pay {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.order-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+
+.cancel-btn {
+  color: #dc3545;
+  border-color: #dc3545;
+}
+
+.cancel-btn:hover {
+  background: #dc3545;
+  color: #fff;
+}
+
+.order-message {
+  margin-top: 16px;
+  padding: 12px;
+  background: #E8F5E9;
+  color: #2E7D32;
+  border-radius: 10px;
+  text-align: center;
 }
 </style>

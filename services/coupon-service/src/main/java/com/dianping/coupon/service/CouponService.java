@@ -1,6 +1,8 @@
 package com.dianping.coupon.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.dianping.common.dto.ConsumeCouponResult;
 import com.dianping.common.exception.BusinessException;
 import com.dianping.coupon.dto.CouponCreateRequest;
 import com.dianping.coupon.dto.SeckillOrderMessage;
@@ -131,6 +133,86 @@ public class CouponService {
 
     public List<Coupon> listByShop(Long shopId) {
         return couponMapper.selectList(new LambdaQueryWrapper<Coupon>().eq(Coupon::getShopId, shopId));
+    }
+
+    @Transactional
+    public ConsumeCouponResult consumeCoupon(Long userId, Long couponId, Long shopId, String orderNo) {
+        String lockKey = "dp:coupon:consume:" + couponId + ":" + userId;
+        RLock lock = redissonClient.getLock(lockKey);
+        boolean locked = false;
+        try {
+            locked = lock.tryLock(5, 30, TimeUnit.SECONDS);
+            if (!locked) {
+                throw new BusinessException("系统繁忙，请稍后重试");
+            }
+
+            Coupon coupon = couponMapper.selectById(couponId);
+            if (coupon == null) {
+                throw new BusinessException("优惠券不存在");
+            }
+            if (!shopId.equals(coupon.getShopId())) {
+                throw new BusinessException("优惠券不适用于该店铺");
+            }
+
+            LambdaQueryWrapper<CouponPurchase> queryWrapper = new LambdaQueryWrapper<CouponPurchase>()
+                    .eq(CouponPurchase::getUserId, userId)
+                    .eq(CouponPurchase::getCouponId, couponId)
+                    .eq(CouponPurchase::getStatus, "paid")
+                    .orderByAsc(CouponPurchase::getCreatedAt)
+                    .last("LIMIT 1");
+            CouponPurchase purchase = couponPurchaseMapper.selectOne(queryWrapper);
+            if (purchase == null) {
+                throw new BusinessException("没有可用的优惠券");
+            }
+
+            LambdaUpdateWrapper<CouponPurchase> updateWrapper = new LambdaUpdateWrapper<CouponPurchase>()
+                    .set(CouponPurchase::getStatus, "used")
+                    .set(CouponPurchase::getUsedAt, LocalDateTime.now())
+                    .eq(CouponPurchase::getId, purchase.getId())
+                    .eq(CouponPurchase::getStatus, "paid");
+            int updated = couponPurchaseMapper.update(null, updateWrapper);
+            if (updated == 0) {
+                throw new BusinessException("优惠券已被使用");
+            }
+
+            return new ConsumeCouponResult(purchase.getId(), coupon.getDiscountAmount());
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException("操作被中断，请重试");
+        } finally {
+            if (locked && lock.isHeldByCurrentThread()) {
+                try {
+                    lock.unlock();
+                } catch (Exception ignored) {
+                }
+            }
+        }
+    }
+
+    @Transactional
+    public void returnCoupon(Long purchaseId, String orderNo, String reason) {
+        CouponPurchase purchase = couponPurchaseMapper.selectById(purchaseId);
+        if (purchase == null) {
+            throw new BusinessException("购买记录不存在");
+        }
+
+        if ("paid".equals(purchase.getStatus())) {
+            return;
+        }
+
+        if (!"used".equals(purchase.getStatus())) {
+            throw new BusinessException("优惠券状态异常，无法退回");
+        }
+
+        LambdaUpdateWrapper<CouponPurchase> updateWrapper = new LambdaUpdateWrapper<CouponPurchase>()
+                .set(CouponPurchase::getStatus, "paid")
+                .set(CouponPurchase::getUsedAt, null)
+                .eq(CouponPurchase::getId, purchaseId)
+                .eq(CouponPurchase::getStatus, "used");
+        int updated = couponPurchaseMapper.update(null, updateWrapper);
+        if (updated == 0) {
+            throw new BusinessException("优惠券退回失败");
+        }
     }
 
     @Transactional

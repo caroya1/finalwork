@@ -1,6 +1,7 @@
 package com.dianping.user.controller;
 
 import com.dianping.common.api.ApiResponse;
+import com.dianping.common.dto.OrderDTO;
 import com.dianping.user.dto.BalanceRechargeRequest;
 import com.dianping.user.dto.UserCreateRequest;
 import com.dianping.user.dto.UpdateCityRequest;
@@ -9,6 +10,7 @@ import com.dianping.common.dto.PostSummary;
 import com.dianping.common.dto.UserCouponView;
 import com.dianping.common.port.PostPort;
 import com.dianping.common.port.CouponPort;
+import com.dianping.user.client.OrderClient;
 import com.dianping.user.entity.User;
 import com.dianping.user.service.UserService;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -28,14 +30,16 @@ public class UserController {
     private final UserService userService;
     private final PostPort postPort;
     private final CouponPort couponPort;
+    private final OrderClient orderClient;
     private final Executor appTaskExecutor;
 
     public UserController(UserService userService, PostPort postPort,
-                          CouponPort couponPort,
+                          CouponPort couponPort, OrderClient orderClient,
                           @Qualifier("appTaskExecutor") Executor appTaskExecutor) {
         this.userService = userService;
         this.postPort = postPort;
         this.couponPort = couponPort;
+        this.orderClient = orderClient;
         this.appTaskExecutor = appTaskExecutor;
     }
 
@@ -70,6 +74,7 @@ public class UserController {
         // 同步调用，避免 SecurityContext 在异步线程中丢失
         List<PostSummary> posts = postPort.listSummariesByUser(id);
         List<UserCouponView> coupons = couponPort.listByUser(id);
+        List<OrderDTO> orders = orderClient.listByUser(id);
         UserProfileResponse response = new UserProfileResponse(
                 user.getId(),
                 user.getUsername(),
@@ -77,7 +82,8 @@ public class UserController {
                 user.getCity(),
                 user.getBalance(),
                 posts,
-                coupons
+                coupons,
+                orders
         );
         return ApiResponse.ok(response);
     }

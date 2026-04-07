@@ -1,12 +1,30 @@
 import { createRouter, createWebHistory } from "vue-router";
-import AdminHome from "../views/AdminHome.vue";
-import AuditRecords from "../views/AuditRecords.vue";
 import Login from "../views/Login.vue";
+import Layout from "../components/Layout.vue";
+import Dashboard from "../views/Dashboard.vue";
+import MerchantAudit from "../views/MerchantAudit.vue";
+import ShopAudit from "../views/ShopAudit.vue";
+import PostAudit from "../views/PostAudit.vue";
+import OrderManage from "../views/OrderManage.vue";
+import Statistics from "../views/Statistics.vue";
 
 const routes = [
-  { path: "/login", component: Login },
-  { path: "/", component: AdminHome },
-  { path: "/audit-records", component: AuditRecords }
+  { 
+    path: "/login", 
+    component: Login 
+  },
+  { 
+    path: "/", 
+    component: Layout,
+    children: [
+      { path: "", component: Dashboard },
+      { path: "merchants", component: MerchantAudit },
+      { path: "shops", component: ShopAudit },
+      { path: "posts", component: PostAudit },
+      { path: "orders", component: OrderManage },
+      { path: "stats", component: Statistics }
+    ]
+  }
 ];
 
 const router = createRouter({

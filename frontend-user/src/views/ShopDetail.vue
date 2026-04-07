@@ -83,8 +83,8 @@
             <div class="coupon-desc">{{ coupon.description || '限店铺使用' }}</div>
             <div class="coupon-meta">
               <span class="tag">{{ coupon.type === 'seckill' ? '特价券' : '平价券' }}</span>
-              <span class="tag">优惠 ¥{{ coupon.discountAmount }}</span>
-              <span class="tag">售价 ¥{{ coupon.price || 0 }}</span>
+              <span class="tag">优惠 ¥{{ (coupon.discountAmount / 100).toFixed(2) }}</span>
+              <span class="tag">售价 ¥{{ ((coupon.price || 0) / 100).toFixed(2) }}</span>
               <span v-if="coupon.type === 'seckill'" class="tag">剩余 {{ coupon.remainingStock || 0 }}</span>
             </div>
           </div>
@@ -108,9 +108,9 @@
           <p class="confirm-title">{{ selectedCoupon?.title }}</p>
           <p class="confirm-desc">{{ selectedCoupon?.description || '限店铺使用' }}</p>
           <div class="confirm-meta">
-            <span class="tag">售价 ¥{{ selectedCoupon?.price || 0 }}</span>
-            <span class="tag">优惠 ¥{{ selectedCoupon?.discountAmount }}</span>
-            <span class="tag">余额 ¥{{ userBalance.toFixed(2) }}</span>
+            <span class="tag">售价 ¥{{ ((selectedCoupon?.price || 0) / 100).toFixed(2) }}</span>
+            <span class="tag">优惠 ¥{{ (selectedCoupon?.discountAmount / 100).toFixed(2) }}</span>
+            <span class="tag">余额 ¥{{ (userBalance / 100).toFixed(2) }}</span>
           </div>
           <div class="confirm-actions">
             <button class="ghost-btn" @click="closeCouponConfirm">取消</button>
@@ -124,6 +124,106 @@
         <div class="auth-card balance-modal">
           <h3>余额不足，请先充值</h3>
           <RouterLink class="balance-link" to="/profile" @click="balanceModalOpen = false">点此充值余额</RouterLink>
+        </div>
+      </div>
+
+      <!-- 到店消费 -->
+      <div class="panel consume-panel" v-if="isLoggedIn">
+        <h3>🍽 到店消费</h3>
+        <div class="consume-form">
+          <div class="amount-input-wrapper">
+            <span class="currency">¥</span>
+            <input
+              v-model.number="consumeAmount"
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="输入消费金额"
+              class="amount-input"
+            />
+          </div>
+
+          <div v-if="bestCoupon && consumeAmount > 0 && !skipCoupon" class="coupon-preview">
+            <div class="selected-coupon">
+              <div class="coupon-info">
+                <span class="coupon-badge">已选优惠</span>
+                <span class="coupon-name">{{ bestCoupon.title }}</span>
+              </div>
+              <span class="discount-amount">-¥{{ bestCoupon.discountAmount }}</span>
+            </div>
+          </div>
+
+          <div v-else-if="consumeAmount > 0 && !skipCoupon" class="no-coupon">
+            <span class="no-coupon-text">暂无可用优惠券</span>
+          </div>
+
+          <div v-if="consumeAmount > 0" class="opt-out-wrapper">
+            <label class="opt-out">
+              <input type="checkbox" v-model="skipCoupon" />
+              <span>不使用优惠券</span>
+            </label>
+          </div>
+
+          <div v-if="consumeAmount > 0" class="pay-preview">
+            <div class="preview-row">
+              <span class="preview-label">原价</span>
+              <span class="preview-value original">¥{{ consumeAmount.toFixed(2) }}</span>
+            </div>
+            <div v-if="!skipCoupon && bestCoupon" class="preview-row discount">
+              <span class="preview-label">优惠</span>
+              <span class="preview-value discount-val">-¥{{ (bestCoupon.discountAmount / 100).toFixed(2) }}</span>
+            </div>
+            <div class="preview-row total">
+              <span class="preview-label">应付</span>
+              <span class="preview-value payable">¥{{ payableAmount.toFixed(2) }}</span>
+            </div>
+          </div>
+
+          <button
+            class="cta consume-cta"
+            @click="submitOrder"
+            :disabled="consumeAmount <= 0 || submitting"
+          >
+            {{ submitting ? '提交中...' : '立即下单' }}
+          </button>
+
+          <div v-if="orderMsg" :class="['order-message', orderMsgType]">
+            {{ orderMsg }}
+          </div>
+        </div>
+      </div>
+
+      <!-- 支付确认弹窗 -->
+      <div v-if="showPayModal" class="auth-overlay" @click.self="closePayModal">
+        <div class="auth-card pay-modal">
+          <div class="confirm-header">
+            <h3>确认支付</h3>
+            <button class="auth-close" @click="closePayModal">×</button>
+          </div>
+          <div class="pay-info" v-if="currentOrder">
+            <div class="pay-row">
+              <span>订单号</span>
+              <span>{{ currentOrder.orderNo }}</span>
+            </div>
+            <div class="pay-row">
+              <span>消费金额</span>
+              <span>¥{{ (currentOrder.amount / 100)?.toFixed(2) }}</span>
+            </div>
+            <div class="pay-row discount" v-if="currentOrder.discountAmount">
+              <span>优惠金额</span>
+              <span>-¥{{ (currentOrder.discountAmount / 100)?.toFixed(2) }}</span>
+            </div>
+            <div class="pay-row total">
+              <span>实付金额</span>
+              <span class="pay-amount">¥{{ (currentOrder.payAmount / 100)?.toFixed(2) }}</span>
+            </div>
+          </div>
+          <div class="pay-actions">
+            <button class="ghost-btn" @click="closePayModal">取消</button>
+            <button class="cta" @click="confirmPay" :disabled="paying">
+              {{ paying ? '支付中...' : '确认支付' }}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -154,10 +254,11 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, watch } from "vue";
 import { useRoute, RouterLink } from "vue-router";
 import { getShopDetail, rateShop, addDish, listCoupons, purchaseCoupon } from "../api/shop";
 import { getProfile } from "../api/user";
+import { createOrder, payOrder } from "../api/order";
 
 const route = useRoute();
 const shop = ref(null);
@@ -178,6 +279,122 @@ const balanceModalOpen = ref(false);
 const couponConfirmOpen = ref(false);
 const selectedCoupon = ref(null);
 const userBalance = ref(0);
+
+// 到店消费相关状态
+const consumeAmount = ref(0);
+const skipCoupon = ref(false);
+const bestCoupon = ref(null);
+const submitting = ref(false);
+const orderMsg = ref("");
+const orderMsgType = ref("");
+const isLoggedIn = computed(() => !!localStorage.getItem("dp_token"));
+
+// 支付弹窗相关状态
+const showPayModal = ref(false);
+const currentOrder = ref(null);
+const paying = ref(false);
+
+const payableAmount = computed(() => {
+  if (skipCoupon.value || !bestCoupon.value) {
+    return consumeAmount.value || 0;
+  }
+  return Math.max(0, consumeAmount.value - bestCoupon.value.discountAmount);
+});
+
+// 打开支付弹窗
+const openPayModal = (order) => {
+  currentOrder.value = order;
+  showPayModal.value = true;
+};
+
+// 关闭支付弹窗
+const closePayModal = () => {
+  showPayModal.value = false;
+  currentOrder.value = null;
+};
+
+// 确认支付
+const confirmPay = async () => {
+  if (!currentOrder.value) return;
+  paying.value = true;
+  try {
+    const res = await payOrder(currentOrder.value.id, currentOrder.value.payAmount);
+    if (res.success) {
+      orderMsg.value = "支付成功！";
+      orderMsgType.value = "success";
+      closePayModal();
+      // 重置表单
+      consumeAmount.value = 0;
+      skipCoupon.value = false;
+      bestCoupon.value = null;
+    } else {
+      orderMsg.value = res.message || "支付失败";
+      orderMsgType.value = "error";
+    }
+  } catch (e) {
+    orderMsg.value = e?.response?.data?.message || "支付失败，请重试";
+    orderMsgType.value = "error";
+  } finally {
+    paying.value = false;
+  }
+};
+
+const selectBestCoupon = () => {
+  if (!consumeAmount.value || consumeAmount.value <= 0) {
+    bestCoupon.value = null;
+    return;
+  }
+  // 获取用户拥有的且适用于当前店铺的优惠券
+  const availableCoupons = coupons.value.filter((c) => {
+    return (
+      ownedCouponIds.value.has(c.id) &&
+      c.shopId === shop.value?.id &&
+      c.discountAmount <= consumeAmount.value
+    );
+  });
+  // 按优惠金额降序排列，选择最优的
+  if (availableCoupons.length > 0) {
+    availableCoupons.sort((a, b) => b.discountAmount - a.discountAmount);
+    bestCoupon.value = availableCoupons[0];
+  } else {
+    bestCoupon.value = null;
+  }
+};
+
+const submitOrder = async () => {
+  orderMsg.value = "";
+  orderMsgType.value = "";
+  if (consumeAmount.value <= 0) {
+    orderMsg.value = "请输入消费金额";
+    orderMsgType.value = "error";
+    return;
+  }
+  submitting.value = true;
+  try {
+    const res = await createOrder({
+      shopId: shop.value?.id,
+      amount: consumeAmount.value * 100,  // 元转分
+      couponId: skipCoupon.value || !bestCoupon.value ? null : bestCoupon.value.id
+    });
+    if (res.success) {
+      // 打开支付弹窗
+      openPayModal(res.data);
+    } else {
+      orderMsg.value = res.message || "下单失败";
+      orderMsgType.value = "error";
+    }
+  } catch (e) {
+    orderMsg.value = e?.response?.data?.message || "下单失败，请重试";
+    orderMsgType.value = "error";
+  } finally {
+    submitting.value = false;
+  }
+};
+
+// 监听消费金额变化，自动选择最优优惠券
+watch(consumeAmount, () => {
+  selectBestCoupon();
+});
 
 const tagList = computed(() => {
   if (!shop.value || !shop.value.tags) return [];
@@ -621,5 +838,250 @@ onMounted(async () => {
   .shop-detail {
     grid-template-columns: 1fr;
   }
+}
+
+/* 到店消费面板 */
+.consume-panel {
+  background: linear-gradient(135deg, var(--card) 0%, #fff9f5 100%);
+}
+
+.consume-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.amount-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 14px;
+  transition: border-color 0.2s;
+}
+
+.amount-input-wrapper:focus-within {
+  border-color: var(--accent);
+}
+
+.amount-input-wrapper .currency {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.amount-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 1.1rem;
+  font-weight: 500;
+  background: transparent;
+}
+
+.amount-input::placeholder {
+  color: var(--muted);
+}
+
+.coupon-preview {
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+  border-radius: 12px;
+  border: 1px solid #c8e6c9;
+}
+
+.selected-coupon {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.coupon-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.coupon-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 20px;
+}
+
+.coupon-name {
+  font-weight: 500;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.discount-amount {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #4caf50;
+}
+
+.no-coupon {
+  padding: 12px 14px;
+  background: var(--muted-bg, #f5f5f5);
+  border-radius: 12px;
+  text-align: center;
+}
+
+.no-coupon-text {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.opt-out-wrapper {
+  padding: 4px 2px;
+}
+
+.opt-out {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: var(--muted);
+  user-select: none;
+}
+
+.opt-out input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
+.pay-preview {
+  padding: 16px;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+}
+
+.preview-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+}
+
+.preview-row.discount {
+  color: #4caf50;
+}
+
+.preview-row.total {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--line);
+}
+
+.preview-label {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.preview-value {
+  font-weight: 500;
+}
+
+.preview-value.original {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.preview-value.discount-val {
+  color: #4caf50;
+  font-weight: 600;
+}
+
+.preview-value.payable {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.consume-cta {
+  width: 100%;
+  padding: 14px 24px;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.consume-cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.order-message {
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  text-align: center;
+}
+
+.order-message.success {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.order-message.error {
+  background: #ffebee;
+  color: #c62828;
+}
+
+/* 支付弹窗样式 */
+.pay-modal {
+  max-width: 400px;
+}
+
+.pay-info {
+  margin: 20px 0;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 12px;
+}
+
+.pay-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px dashed #e0e0e0;
+}
+
+.pay-row:last-child {
+  border-bottom: none;
+}
+
+.pay-row.discount {
+  color: #4caf50;
+}
+
+.pay-row.total {
+  margin-top: 8px;
+  padding-top: 12px;
+  border-top: 2px solid #e0e0e0;
+  font-weight: 600;
+}
+
+.pay-amount {
+  font-size: 1.4rem;
+  color: var(--accent);
+}
+
+.pay-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 20px;
 }
 </style>

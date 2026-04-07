@@ -7,6 +7,20 @@ import com.baomidou.mybatisplus.annotation.TableName;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+/**
+ * 优惠券购买记录实体
+ * 
+ * Status lifecycle:
+ * - paid: 已支付，可使用
+ * - processing: 处理中（如秒杀抢购中）
+ * - used: 已使用（创建订单后）
+ * - refunded: 已退款
+ * 
+ * State transitions:
+ * - paid → used (on order create)
+ * - used → paid (on cancel/timeout return)
+ * - paid → refunded (explicit refund)
+ */
 @TableName("dp_coupon_purchase")
 public class CouponPurchase {
     @TableId(type = IdType.AUTO)
@@ -23,6 +37,8 @@ public class CouponPurchase {
     private String refundReason;
 
     private LocalDateTime refundedAt;
+
+    private LocalDateTime usedAt;
 
     private LocalDateTime createdAt;
 
@@ -88,5 +104,13 @@ public class CouponPurchase {
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public LocalDateTime getUsedAt() {
+        return usedAt;
+    }
+
+    public void setUsedAt(LocalDateTime usedAt) {
+        this.usedAt = usedAt;
     }
 }
