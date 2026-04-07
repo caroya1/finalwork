@@ -1,4 +1,4 @@
-# 类大众点评系统（Dianping Clone）
+# 大众点评系统（Dianping Clone）
 
 基于 Spring Cloud Alibaba + Vue3 构建的本地生活服务平台，涵盖用户端、商户端、管理员端三大模块，支持店铺推荐、优惠券、订单管理等功能。
 
@@ -14,7 +14,7 @@
 - [快速开始](#快速开始)
 - [项目结构](#项目结构)
 - [服务说明](#服务说明)
-- [部署指南](#部署指南)
+- [功能详解](#功能详解)
 - [接口文档](#接口文档)
 - [开发规范](#开发规范)
 - [常见问题](#常见问题)
@@ -23,27 +23,32 @@
 
 ### 功能特性
 
-**用户端**
+**用户端（端口 5173）**
 - 🔍 店铺搜索与筛选（按城市、分类、评分）
 - 🤖 AI智能助手（支持美食、酒店、电影、景点等多场景推荐）
 - 📍 附近店铺推荐
 - 🎫 优惠券领取与使用
 - 📝 帖子发布与互动（点赞、评论）
 - ⭐ 店铺评分与评价
-- 🛒 订单创建与支付
+- 🛒 **到店消费** - 在店铺页面直接下单，自动选择最优优惠券，创建订单并支付
+- 📦 **订单管理** - 查看订单列表、支付订单、取消待支付订单
 
-**商户端**
-- 🏪 店铺信息管理
-- 🍽️ 菜品管理
-- 🎟️ 优惠券发布
-- 📦 订单处理与核销
-- 📊 数据统计
+**商户端（端口 5174）**
+- 🏠 **工作台** - 查看统计数据（有效订单数、营业额）
+- 🏪 **门店管理** - 创建和编辑门店信息
+- 🍽️ **菜品管理** - 添加和管理门店菜品
+- 🎟️ **优惠券管理** - 发布特价券和平价券
+- 📦 **订单管理** - 查看用户订单、核销已支付订单
+- 统一侧边栏导航布局
 
-**管理端**
-- 👥 用户管理
-- 🏢 商户审核
-- 🏪 店铺审核
-- 📊 平台数据统计
+**管理端（端口 5175）**
+- 📊 **运营看板** - 查看今日订单、待审商户、待审店铺、待审内容统计
+- 🏢 **商户审核** - 审核商户入驻申请
+- 🏪 **店铺审核** - 审核店铺创建申请
+- 📝 **内容审核** - 审核用户发布的帖子
+- 📦 **订单管理** - 查询平台所有订单、导出CSV
+- 📈 **数据统计** - 查看平台核心指标
+- 统一侧边栏导航布局
 
 ## 🏗️ 技术架构
 
@@ -105,10 +110,10 @@
 - **网关**: Spring Cloud Gateway
 - **ORM**: MyBatis-Plus 3.5.5
 - **缓存**: Redis
-- **消息队列**: RabbitMQ（可选）
 - **对象存储**: 腾讯云 COS
 - **安全**: Spring Security + JWT
 - **AI大模型**: 通义千问（DashScope API）
+- **分布式锁**: Redisson
 
 **前端**
 - **框架**: Vue 3.4
@@ -117,6 +122,7 @@
 - **状态管理**: 原生响应式（Vue 3 Composition API）
 - **HTTP 客户端**: Axios
 - **样式**: 自定义 CSS Variables
+- **测试**: Vitest
 
 ## 🚀 环境要求
 
@@ -161,8 +167,8 @@ finalWork/
 │   └── recommendation-service/ # 推荐服务
 │
 ├── frontend-user/              # 用户端前端
-├── frontend-merchant/          # 商户端前端
-├── frontend-admin/             # 管理端前端
+├── frontend-merchant/          # 商户端前端（侧边栏布局）
+├── frontend-admin/             # 管理端前端（侧边栏布局）
 │
 ├── nacos-config/               # Nacos配置文件
 │   ├── auth-service.yml
@@ -174,6 +180,13 @@ finalWork/
 │   ├── post-service.yml
 │   ├── recommendation-service.yml
 │   └── dianping-gateway.yml
+│
+├── sql/                        # 数据库脚本
+│   └── fix_in_store_consumption.sql  # 到店消费功能字段
+│
+├── .sisyphus/                  # 知识库
+│   ├── notepads/               # 架构决策记录
+│   └── plans/                  # 工作计划
 │
 └── README.md                   # 项目说明文档
 ```
@@ -251,10 +264,10 @@ bash import-to-nacos.sh http://192.168.145.128:8848
    | `app.oss.tencent.secret-key` | 腾讯云 Secret Key | post-service.yml |
    | `app.oss.tencent.bucket-name` | COS 存储桶名称 | post-service.yml |
 
-### 4. 构建项目
+### 4. 编译项目
 
 ```bash
-# 安装common模块到本地Maven仓库
+# 安装common模块到本地Maven仓库（必须先安装）
 cd services/common
 mvn clean install -DskipTests
 
@@ -360,6 +373,57 @@ npm run dev
 | recommendation-service | 8098 | recommendation-service | recommendation-service |
 | ai-service | 8099 | ai-service | ai-service |
 
+## 🎯 功能详解
+
+### 到店消费流程
+
+用户到店消费的完整流程：
+
+```
+1. 用户在店铺页面输入消费金额
+2. 系统自动选择最优优惠券（用户可手动取消选择）
+3. 创建订单（优惠券立即核销）
+4. 用户确认支付（扣减余额）
+5. 订单完成
+```
+
+**技术要点**：
+- 优惠券核销使用乐观锁防止超卖（`UPDATE ... WHERE status = 'paid'`）
+- 支付时自动扣减用户余额，余额不足则支付失败
+- 订单超时自动取消并返还优惠券
+
+### 优惠券状态机
+
+```
+ paid → used（订单创建时核销）
+ used → paid（订单取消/超时时返还）
+ paid → refunded（用户主动退款）
+```
+
+### 金额处理规范
+
+- **数据库**：统一使用"分"作为存储单位（避免浮点精度问题）
+- **前端显示**：从分转换为元（除以100）
+- **前端输入**：用户输入元，提交时转为分（乘以100）
+
+### 前端布局
+
+**商户端和管理端**：统一采用侧边栏导航布局
+
+```
+┌─────────────────────────────────────────┐
+│  Logo          │                        │
+├────────────────┤    页面内容区域         │
+│  🏠 工作台      │                        │
+│  🏪 门店管理    │                        │
+│  🍽️ 菜品管理   │      RouterView        │
+│  🎟️ 优惠券管理 │                        │
+│  📦 订单管理    │                        │
+├────────────────┤                        │
+│  商户信息/退出  │                        │
+└─────────────────────────────────────────┘
+```
+
 ## 🤖 AI助手功能
 
 ### 功能简介
@@ -410,6 +474,7 @@ PUT  /api/users/{id}           # 更新用户信息
 GET  /api/users/{id}/followers # 获取粉丝列表
 GET  /api/users/{id}/following # 获取关注列表
 POST /api/users/{id}/follow    # 关注用户
+GET  /api/users/profile        # 获取当前用户信息（含订单列表）
 ```
 
 **商户模块**
@@ -425,6 +490,7 @@ GET  /api/shops                # 店铺列表（可按城市、分类筛选）
 GET  /api/shops/{id}           # 店铺详情
 POST /api/shops                # 创建店铺（需商户权限）
 GET  /api/shops/{id}/dishes    # 获取店铺菜品
+GET  /api/shops/{id}/coupons   # 获取店铺优惠券
 ```
 
 **优惠券模块**
@@ -432,6 +498,7 @@ GET  /api/shops/{id}/dishes    # 获取店铺菜品
 GET  /api/coupons              # 优惠券列表
 POST /api/coupons/{id}/seckill # 秒杀优惠券
 GET  /api/coupons/my           # 我的优惠券
+POST /api/coupons/best         # 获取最优优惠券（到店消费用）
 ```
 
 **订单模块**
@@ -440,6 +507,7 @@ POST /api/orders               # 创建订单
 GET  /api/orders/{id}          # 订单详情
 GET  /api/orders               # 订单列表
 POST /api/orders/{id}/pay      # 支付订单
+POST /api/orders/{id}/cancel   # 取消订单
 ```
 
 **帖子模块**
@@ -454,6 +522,24 @@ POST /api/posts/{id}/comment   # 评论帖子
 **推荐模块**
 ```
 POST /api/recommendations      # 获取推荐列表
+```
+
+### 内部API（服务间调用）
+
+**优惠券服务**
+```
+POST /internal/coupons/consume  # 核销优惠券
+POST /internal/coupons/return   # 返还优惠券
+```
+
+**用户服务**
+```
+POST /internal/users/{userId}/deduct  # 扣减用户余额
+```
+
+**订单服务**
+```
+GET  /internal/orders/user/{userId}   # 查询用户订单列表
 ```
 
 ## ⚠️ 常见问题
@@ -493,8 +579,26 @@ POST /api/recommendations      # 获取推荐列表
 - 检查Redis服务是否启动
 - 检查Redis密码是否正确（默认：123456）
 - 检查防火墙是否允许连接
+- 检查 order-service.yml 中的 Redis 配置
 
-### 5. 文件上传失败
+### 5. 优惠券核销失败
+
+**问题**: `优惠券已被使用或不存在`
+
+**解决**:
+- 检查优惠券状态是否为 `paid`（已购买未使用）
+- 检查优惠券是否属于当前用户
+- 检查优惠券是否在有效期内
+
+### 6. 订单支付失败
+
+**问题**: `余额不足`
+
+**解决**:
+- 检查用户余额是否足够支付订单金额
+- 检查订单优惠金额是否正确计算
+
+### 7. 文件上传失败
 
 **问题**: `OSS服务未配置，请联系管理员`
 
@@ -525,3 +629,13 @@ chore: 构建/工具相关
 - `develop`: 开发分支
 - `feature/xxx`: 功能分支
 - `bugfix/xxx`: 修复分支
+
+### 数据库规范
+- **命名**: `dianping_{service}`（每个服务独立数据库）
+- **ORM**: MyBatis-Plus 3.5+
+- **建表**: 自动建表（无需Flyway/Liquibase）
+
+### 金额处理规范
+- **存储**: 数据库统一使用"分"
+- **显示**: 前端显示转换为"元"
+- **输入**: 用户输入"元"，提交时转为"分"
