@@ -17,8 +17,8 @@
           <div class="stat-value">{{ shopStats.orderCount || 0 }}</div>
         </div>
         <div class="stat-item">
-          <div class="stat-label">营业额(分)</div>
-          <div class="stat-value">{{ shopStats.revenue || 0 }}</div>
+          <div class="stat-label">营业额(元)</div>
+          <div class="stat-value">{{ ((shopStats.revenue || 0) / 100).toFixed(2) }}</div>
         </div>
       </div>
     </div>
@@ -112,7 +112,7 @@
         <div v-for="dish in dishList" :key="dish.id" class="list-item">
           <strong>{{ dish.name }}</strong>
           <div>
-            <span class="tag">¥{{ dish.price }}</span>
+            <span class="tag">¥{{ (dish.price / 100).toFixed(2) }}</span>
             <span class="tag">状态 {{ dish.status }}</span>
             <button class="ghost-btn" @click="removeDish(dish.id)">删除</button>
           </div>
@@ -139,7 +139,7 @@
           <strong>{{ order.orderNo || `订单#${order.id}` }}</strong>
           <div>
             <span class="tag">用户 {{ order.userId }}</span>
-            <span class="tag">金额 {{ order.payAmount || order.amount }}</span>
+            <span class="tag">金额 {{ ((order.payAmount || order.amount || 0) / 100).toFixed(2) }}</span>
             <span class="tag">状态 {{ order.status }}</span>
             <button class="ghost-btn" v-if="order.status === 1" @click="doVerify(order.id)">核销</button>
           </div>
@@ -155,8 +155,8 @@
           <strong>{{ coupon.title }}</strong>
           <div>
             <span class="tag">{{ coupon.type }}</span>
-            <span class="tag">优惠 ¥{{ coupon.discountAmount }}</span>
-            <span class="tag">售价 ¥{{ coupon.price }}</span>
+            <span class="tag">优惠 ¥{{ (coupon.discountAmount / 100).toFixed(2) }}</span>
+            <span class="tag">售价 ¥{{ (coupon.price / 100).toFixed(2) }}</span>
           </div>
         </div>
         <div v-if="couponList.length === 0" class="list-item">暂无优惠券</div>
@@ -358,8 +358,8 @@ const submitCoupon = async () => {
     type: couponForm.value.type,
     title: couponForm.value.title,
     description: couponForm.value.description,
-    discountAmount: Number(couponForm.value.discountAmount),
-    price: Number(couponForm.value.price),
+    discountAmount: Number(couponForm.value.discountAmount) * 100,  // 元转分
+    price: Number(couponForm.value.price) * 100,  // 元转分
     totalStock: couponForm.value.type === "seckill" ? Number(couponForm.value.totalStock) : null,
     remainingStock: couponForm.value.type === "seckill" ? Number(couponForm.value.totalStock) : null,
     startTime: couponForm.value.type === "seckill" ? formatLocalDateTime(couponForm.value.startTime) : null,
@@ -419,7 +419,10 @@ const submitDish = async () => {
     dishMessage.value = "请填写菜品名称和价格";
     return;
   }
-  const response = await createDish(Number(activeShopId.value), dishForm.value);
+  const response = await createDish(Number(activeShopId.value), {
+    ...dishForm.value,
+    price: dishForm.value.price * 100  // 元转分
+  });
   dishMessage.value = response.success ? "菜品新增成功" : response.message || "新增失败";
   if (response.success) {
     dishForm.value = { name: "", price: 0, description: "", imageUrl: "", imagePreview: "" };

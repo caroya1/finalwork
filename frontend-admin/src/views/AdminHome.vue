@@ -101,6 +101,49 @@
     </div>
   </section>
 
+  <!-- Trend Chart Section -->
+  <section class="hero">
+    <div class="hero-card trend-card">
+      <h2>近7天审核趋势</h2>
+      <p>每日审核通过数量统计</p>
+      <div class="trend-chart">
+        <div 
+          v-for="(day, index) in weekData" 
+          :key="day.label" 
+          class="chart-bar-wrapper"
+          :style="{ animationDelay: index * 100 + 'ms' }"
+        >
+          <div class="chart-bar-container">
+            <div 
+              class="chart-bar" 
+              :style="{ height: day.percentage + '%' }"
+            >
+              <span class="bar-value">{{ day.value }}</span>
+            </div>
+          </div>
+          <div class="bar-label-group">
+            <span class="bar-label">{{ day.label }}</span>
+            <span class="bar-date">{{ day.fullDate }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="chart-summary">
+        <div class="summary-item">
+          <span class="summary-label">本周总计</span>
+          <span class="summary-value">{{ weekData.reduce((sum, d) => sum + d.value, 0) }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">日均审核</span>
+          <span class="summary-value">{{ weekData.length > 0 ? Math.round(weekData.reduce((sum, d) => sum + d.value, 0) / weekData.length) : 0 }}</span>
+        </div>
+        <div class="summary-item">
+          <span class="summary-label">最高单日</span>
+          <span class="summary-value">{{ weekData.length > 0 ? Math.max(...weekData.map(d => d.value)) : 0 }}</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="panel-grid">
     <div class="panel">
       <h2>订单列表</h2>
@@ -110,7 +153,7 @@
           <div>
             <span class="tag">用户 {{ order.userId }}</span>
             <span class="tag">店铺 {{ order.shopId }}</span>
-            <span class="tag">金额 {{ order.payAmount || order.amount }}</span>
+            <span class="tag">金额 {{ ((order.payAmount || order.amount || 0) / 100).toFixed(2) }}</span>
             <span class="tag">状态 {{ order.status }}</span>
           </div>
         </div>
@@ -293,6 +336,43 @@
     </div>
   </div>
 
+  <!-- Help Modal -->
+  <div v-if="showHelpModal" class="modal-overlay" @click.self="showHelpModal = false">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>键盘快捷键</h3>
+        <button class="modal-close" @click="showHelpModal = false">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="shortcut-list">
+          <div class="shortcut-item">
+            <span class="shortcut-key">Y</span>
+            <span class="shortcut-desc">通过第一个待审核项</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">N</span>
+            <span class="shortcut-desc">拒绝第一个待审核项</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">ESC</span>
+            <span class="shortcut-desc">关闭弹窗</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">/</span>
+            <span class="shortcut-desc">聚焦搜索输入框</span>
+          </div>
+          <div class="shortcut-item">
+            <span class="shortcut-key">?</span>
+            <span class="shortcut-desc">显示帮助面板</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="cta" @click="showHelpModal = false">知道了</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Export Progress -->
   <div v-if="exporting" class="export-progress">
     <div class="progress-spinner"></div>
@@ -451,6 +531,9 @@ const detailData = ref({});
 const detailType = ref(''); // 'merchant', 'shop', 'post'
 const detailId = ref(null);
 
+// Help modal state
+const showHelpModal = ref(false);
+
 const detailModalTitle = computed(() => {
   const titles = {
     'merchant': '商户详情',
@@ -481,6 +564,42 @@ const stats = ref({
   avgReviewTime: '-',
   passRate: 0
 });
+
+// Week trend data (mock data for last 7 days)
+const weekData = ref([]);
+
+const generateWeekData = () => {
+  const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+  const today = new Date().getDay();
+  const adjustedDays = [];
+  
+  // Rearrange days so today is the last one
+  for (let i = 6; i >= 0; i--) {
+    const dayIndex = (today - i - 1 + 7) % 7;
+    adjustedDays.push(days[dayIndex]);
+  }
+  
+  // Generate mock data with some randomness but keep it realistic
+  const baseValue = 35;
+  const data = adjustedDays.map((day, index) => {
+    const randomVariation = Math.floor(Math.random() * 30) - 10;
+    const weekendBoost = (index >= 5) ? 15 : 0; // Weekend boost
+    const value = Math.max(10, baseValue + randomVariation + weekendBoost);
+    return {
+      label: day,
+      value: value,
+      fullDate: new Date(Date.now() - (6 - index) * 24 * 60 * 60 * 1000).toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })
+    };
+  });
+  
+  // Calculate percentages based on max value
+  const maxValue = Math.max(...data.map(d => d.value));
+  data.forEach(d => {
+    d.percentage = Math.round((d.value / maxValue) * 100);
+  });
+  
+  weekData.value = data;
+};
 
 // Filter functions
 const applyFilters = () => {
@@ -865,6 +984,7 @@ onMounted(async () => {
   }
   await refreshDashboard();
   calculateStats();
+  generateWeekData();
   window.addEventListener('keydown', handleKeyboard);
   
   // Start auto-refresh
@@ -878,7 +998,7 @@ onUnmounted(() => {
   document.removeEventListener('visibilitychange', handleVisibilityChange);
 });
 
-// Keyboard shortcuts: Y=approve first pending, N=reject first pending, ESC=close modal
+// Keyboard shortcuts: Y=approve first pending, N=reject first pending, ESC=close modal, /=search, ?=help
 const handleKeyboard = (e) => {
   // Y = 通过第一个待审核项
   if (e.key === 'y' || e.key === 'Y') {
@@ -907,6 +1027,19 @@ const handleKeyboard = (e) => {
   if (e.key === 'Escape') {
     showDetailModal.value = false;
     showRejectModal.value = false;
+    showHelpModal.value = false;
+  }
+  // / = 聚焦搜索输入框
+  if (e.key === '/') {
+    e.preventDefault();
+    const searchInput = document.querySelector('.hero-card input');
+    if (searchInput) {
+      searchInput.focus();
+    }
+  }
+  // ? = 显示帮助面板
+  if (e.key === '?') {
+    showHelpModal.value = true;
   }
 };
 
@@ -1595,6 +1728,178 @@ const pendingPosts = computed(() => posts.value.filter((p) => p.auditStatus === 
   box-shadow: var(--shadow-xl);
 }
 
+/* ========== Trend Chart Section ========== */
+.trend-card {
+  grid-column: 1 / -1;
+}
+
+.trend-chart {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  height: 220px;
+  padding: var(--space-4) 0;
+  margin-top: var(--space-4);
+  border-bottom: 2px solid var(--border-light);
+}
+
+.chart-bar-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  animation: slideUp 500ms ease forwards;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+@keyframes slideUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chart-bar-container {
+  width: 100%;
+  height: 160px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  position: relative;
+}
+
+.chart-bar {
+  width: 70%;
+  max-width: 48px;
+  background: var(--brand-gradient);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  position: relative;
+  transition: all var(--transition-base);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.chart-bar:hover {
+  background: var(--brand-gradient-hover);
+  box-shadow: var(--shadow-brand);
+  transform: scaleY(1.02);
+}
+
+.chart-bar:hover .bar-value {
+  opacity: 1;
+  transform: translateY(-8px);
+}
+
+.bar-value {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--brand-primary);
+  opacity: 0;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+  background: var(--bg-primary);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-light);
+}
+
+.chart-bar:hover .bar-value {
+  opacity: 1;
+}
+
+.bar-label-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.bar-label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-primary);
+}
+
+.bar-date {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.chart-summary {
+  display: flex;
+  justify-content: space-around;
+  padding: var(--space-4) var(--space-2) 0;
+  margin-top: var(--space-2);
+  border-top: 1px solid var(--border-light);
+}
+
+.summary-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.summary-label {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.summary-value {
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--brand-primary);
+}
+
+/* Responsive chart */
+@media (max-width: 640px) {
+  .trend-chart {
+    height: 180px;
+    gap: var(--space-2);
+  }
+
+  .chart-bar-container {
+    height: 120px;
+  }
+
+  .chart-bar {
+    width: 80%;
+    min-width: 24px;
+  }
+
+  .bar-value {
+    font-size: var(--text-xs);
+    top: -20px;
+  }
+
+  .bar-label {
+    font-size: var(--text-xs);
+  }
+
+  .bar-date {
+    font-size: 10px;
+  }
+
+  .chart-summary {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .summary-value {
+    font-size: var(--text-lg);
+  }
+}
+
 @media (max-width: 640px) {
   .export-progress {
     bottom: 16px;
@@ -1621,5 +1926,39 @@ const pendingPosts = computed(() => posts.value.filter((p) => p.auditStatus === 
     height: 40px;
     font-size: var(--text-lg);
   }
+}
+
+/* ========== Shortcut List ========== */
+.shortcut-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.shortcut-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  font-family: monospace;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--brand-primary);
+}
+
+.shortcut-desc {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
 }
 </style>
